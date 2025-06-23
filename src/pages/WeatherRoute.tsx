@@ -1,6 +1,7 @@
 import React from 'react';
 import { RouteForm } from '@/components/RouteForm';
 import { WeatherDisplay } from '@/components/WeatherDisplay';
+import { RouteMap } from '@/components/RouteMap';
 import { useState } from 'react';
 
 export interface RouteData {
@@ -26,6 +27,7 @@ export interface WeatherPrediction {
 const WeatherRoute = () => {
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherPrediction[] | null>(null);
+  const [routeCoordinates, setRouteCoordinates] = useState<{lat: number, lon: number}[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const getLocationName = async (lat: number, lon: number): Promise<string> => {
@@ -82,17 +84,35 @@ const WeatherRoute = () => {
         return;
       }
       
-      // Calculate points along the route based on duration
-      const pointsToFetch = Math.min(5, Math.max(2, Math.floor(data.duration / 2)));
-      const interval = Math.floor(trackPoints.length / pointsToFetch);
+      setRouteCoordinates(trackPoints);
+      
+      // Calculate points with maximum 90 minutes between them
+      const maxIntervalMinutes = 90;
+      const maxIntervalHours = maxIntervalMinutes / 60;
+      const minPointsNeeded = Math.max(2, Math.ceil(data.duration / maxIntervalHours) + 1);
+      
+      // Ensure we don't exceed reasonable limits
+      const pointsToFetch = Math.min(minPointsNeeded, 20);
+      const interval = Math.floor(trackPoints.length / (pointsToFetch - 1));
       const selectedPoints = [];
       
-      for (let i = 0; i < pointsToFetch; i++) {
+      // Always include start point
+      selectedPoints.push(trackPoints[0]);
+      
+      // Add intermediate points
+      for (let i = 1; i < pointsToFetch - 1; i++) {
         const index = i * interval;
         if (index < trackPoints.length) {
           selectedPoints.push(trackPoints[index]);
         }
       }
+      
+      // Always include end point if we have more than one point
+      if (trackPoints.length > 1) {
+        selectedPoints.push(trackPoints[trackPoints.length - 1]);
+      }
+      
+      console.log(`Selected ${selectedPoints.length} points with max ${maxIntervalMinutes} minutes between them`);
       
       // Fetch weather data and location names for each point
       const weatherPromises = selectedPoints.map(async (point, index) => {
@@ -175,7 +195,7 @@ const WeatherRoute = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 p-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">
             Sykkelvær
@@ -185,7 +205,7 @@ const WeatherRoute = () => {
           </p>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <div className="space-y-6">
             <RouteForm onSubmit={handleRouteSubmit} isLoading={isLoading} />
           </div>
@@ -199,6 +219,15 @@ const WeatherRoute = () => {
             )}
           </div>
         </div>
+
+        {routeCoordinates && weatherData && (
+          <div className="w-full">
+            <RouteMap 
+              routeCoordinates={routeCoordinates}
+              weatherPoints={weatherData}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
