@@ -215,6 +215,7 @@ const WeatherRoute = () => {
               <WeatherDisplay 
                 weatherData={weatherData} 
                 routeData={routeData}
+                routeCoordinates={routeCoordinates}
               />
             )}
           </div>
