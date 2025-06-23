@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { RouteForm } from '@/components/RouteForm';
 import { WeatherDisplay } from '@/components/WeatherDisplay';
@@ -7,6 +6,7 @@ import { useState } from 'react';
 export interface RouteData {
   gpxFile: File;
   startDate: string;
+  startTime: string;
   duration: number; // timer
   avgSpeed?: number; // km/h
 }
@@ -27,6 +27,36 @@ const WeatherRoute = () => {
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherPrediction[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const getLocationName = async (lat: number, lon: number): Promise<string> => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1&accept-language=no`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Geocoding failed');
+      }
+      
+      const data = await response.json();
+      const address = data.address;
+      
+      // Prioritize city, town, village, hamlet
+      const locationName = address.city || 
+                           address.town || 
+                           address.village || 
+                           address.hamlet || 
+                           address.municipality || 
+                           address.county || 
+                           'Ukjent sted';
+      
+      console.log(`Geocoding result for ${lat}, ${lon}:`, locationName);
+      return locationName;
+    } catch (error) {
+      console.error('Error geocoding location:', error);
+      return `${lat.toFixed(3)}, ${lon.toFixed(3)}`;
+    }
+  };
 
   const handleRouteSubmit = async (data: RouteData) => {
     setIsLoading(true);
@@ -64,8 +94,16 @@ const WeatherRoute = () => {
         }
       }
       
-      // Fetch weather data for each point
+      // Fetch weather data and location names for each point
       const weatherPromises = selectedPoints.map(async (point, index) => {
+        // Get location name via reverse geocoding
+        const locationName = await getLocationName(point.lat, point.lon);
+        
+        // Add small delay to respect rate limits
+        if (index > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
         const response = await fetch(
           `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${point.lat}&lon=${point.lon}`,
           {
@@ -83,12 +121,12 @@ const WeatherRoute = () => {
         const currentWeather = weatherResponse.properties.timeseries[0];
         
         // Calculate time for this point based on route progression
-        const startTime = new Date(data.startDate);
+        const startDateTime = new Date(`${data.startDate}T${data.startTime}`);
         const hoursFromStart = (index / (selectedPoints.length - 1)) * data.duration;
-        const pointTime = new Date(startTime.getTime() + hoursFromStart * 60 * 60 * 1000);
+        const pointTime = new Date(startDateTime.getTime() + hoursFromStart * 60 * 60 * 1000);
         
         return {
-          location: `Punkt ${index + 1}`,
+          location: locationName,
           time: pointTime.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' }),
           temperature: Math.round(currentWeather.data.instant.details.air_temperature),
           precipitation: currentWeather.data.next_1_hours?.details.precipitation_amount || 0,

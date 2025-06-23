@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -40,7 +39,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
           </CardTitle>
           {routeData && (
             <p className="text-sm text-gray-600">
-              {new Date(routeData.startDate).toLocaleDateString('no-NO')} - 
+              {new Date(`${routeData.startDate}T${routeData.startTime}`).toLocaleString('no-NO')} - 
               {routeData.duration} timer sykkeltur
               {routeData.avgSpeed && ` (${routeData.avgSpeed} km/h)`}
             </p>

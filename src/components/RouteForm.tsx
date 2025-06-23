@@ -15,15 +15,17 @@ interface RouteFormProps {
 export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => {
   const [gpxFile, setGpxFile] = useState<File | null>(null);
   const [startDate, setStartDate] = useState('');
+  const [startTime, setStartTime] = useState('08:00');
   const [duration, setDuration] = useState(0);
   const [avgSpeed, setAvgSpeed] = useState<number | undefined>(undefined);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (gpxFile && startDate && duration > 0) {
+    if (gpxFile && startDate && startTime && duration > 0) {
       onSubmit({
         gpxFile,
         startDate,
+        startTime,
         duration,
         avgSpeed
       });
@@ -68,18 +70,34 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="startDate" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Startdato
-            </Label>
-            <Input
-              id="startDate"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="startDate" className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Startdato
+              </Label>
+              <Input
+                id="startDate"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="startTime" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Starttidspunkt
+              </Label>
+              <Input
+                id="startTime"
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
