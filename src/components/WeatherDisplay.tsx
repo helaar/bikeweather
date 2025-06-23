@@ -55,6 +55,9 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                   <div>
                     <h4 className="font-medium">{weather.location}</h4>
                     <p className="text-sm text-gray-500">Kl. {weather.time}</p>
+                    <p className="text-xs text-gray-400">
+                      {weather.lat.toFixed(3)}, {weather.lon.toFixed(3)}
+                    </p>
                   </div>
                 </div>
                 

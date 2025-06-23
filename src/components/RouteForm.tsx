@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RouteData } from '@/pages/WeatherRoute';
-import { Route, Calendar, Clock, Bike } from 'lucide-react';
+import { Upload, Calendar, Clock, Bike } from 'lucide-react';
 
 interface RouteFormProps {
   onSubmit: (data: RouteData) => void;
@@ -13,50 +13,59 @@ interface RouteFormProps {
 }
 
 export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => {
-  const [formData, setFormData] = useState<RouteData>({
-    stravaUrl: '',
-    startDate: '',
-    duration: 0,
-    avgSpeed: undefined
-  });
+  const [gpxFile, setGpxFile] = useState<File | null>(null);
+  const [startDate, setStartDate] = useState('');
+  const [duration, setDuration] = useState(0);
+  const [avgSpeed, setAvgSpeed] = useState<number | undefined>(undefined);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.stravaUrl && formData.startDate && formData.duration > 0) {
-      onSubmit(formData);
+    if (gpxFile && startDate && duration > 0) {
+      onSubmit({
+        gpxFile,
+        startDate,
+        duration,
+        avgSpeed
+      });
     }
   };
 
-  const handleInputChange = (field: keyof RouteData, value: string | number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.name.toLowerCase().endsWith('.gpx')) {
+      setGpxFile(file);
+    } else {
+      alert('Vennligst velg en gyldig GPX-fil');
+    }
   };
 
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Route className="h-5 w-5" />
+          <Upload className="h-5 w-5" />
           Rute informasjon
         </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="stravaUrl" className="flex items-center gap-2">
-              <Route className="h-4 w-4" />
-              Strava rute URL
+            <Label htmlFor="gpxFile" className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              GPX-fil for ruten
             </Label>
             <Input
-              id="stravaUrl"
-              type="url"
-              placeholder="https://www.strava.com/routes/..."
-              value={formData.stravaUrl}
-              onChange={(e) => handleInputChange('stravaUrl', e.target.value)}
+              id="gpxFile"
+              type="file"
+              accept=".gpx"
+              onChange={handleFileChange}
               required
             />
+            {gpxFile && (
+              <p className="text-sm text-green-600">
+                Valgt fil: {gpxFile.name}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -67,8 +76,8 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
             <Input
               id="startDate"
               type="date"
-              value={formData.startDate}
-              onChange={(e) => handleInputChange('startDate', e.target.value)}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
               required
             />
           </div>
@@ -85,8 +94,8 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
                 min="1"
                 max="24"
                 placeholder="8"
-                value={formData.duration || ''}
-                onChange={(e) => handleInputChange('duration', parseInt(e.target.value) || 0)}
+                value={duration || ''}
+                onChange={(e) => setDuration(parseInt(e.target.value) || 0)}
                 required
               />
             </div>
@@ -102,8 +111,8 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
                 min="5"
                 max="50"
                 placeholder="20"
-                value={formData.avgSpeed || ''}
-                onChange={(e) => handleInputChange('avgSpeed', parseInt(e.target.value) || undefined)}
+                value={avgSpeed || ''}
+                onChange={(e) => setAvgSpeed(parseInt(e.target.value) || undefined)}
               />
             </div>
           </div>
@@ -111,7 +120,7 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isLoading}
+            disabled={isLoading || !gpxFile}
           >
             {isLoading ? 'Henter værdata...' : 'Få værvarsel'}
           </Button>
