@@ -71,7 +71,7 @@ This project is configured to deploy to GitHub Pages automatically using GitHub 
 1. Build the project
 2. Deploy it to GitHub Pages
 
-The deployed site will be available at: https://helaar.github.io/tour-weather-oracle/
+The deployed site will be available at: https://helaar.github.io/bikeweather/
 
 To manually trigger a deployment:
 1. Go to the GitHub repository

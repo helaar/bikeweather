@@ -15,7 +15,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter basename="/tour-weather-oracle">
+      <BrowserRouter basename="/bikeweather">
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/weather" element={<WeatherRoute />} />
