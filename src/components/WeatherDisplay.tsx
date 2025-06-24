@@ -3,18 +3,21 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { WeatherPrediction, RouteData } from '@/pages/WeatherRoute';
-import { Cloud, CloudRain, Sun, MapPin } from 'lucide-react';
+import { Cloud, CloudRain, Sun, MapPin, Droplets, Thermometer, Wind, Code, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState } from 'react';
 
 interface WeatherDisplayProps {
   weatherData: WeatherPrediction[];
   routeData: RouteData | null;
   routeCoordinates?: {lat: number, lon: number}[] | null;
+  routeLength?: number | null;
 }
 
-export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ 
-  weatherData, 
+export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
+  weatherData,
   routeData,
-  routeCoordinates 
+  routeCoordinates,
+  routeLength
 }) => {
   const getWeatherIcon = (description: string) => {
     if (description.includes('regn') || description.includes('Regn')) {
@@ -45,9 +48,9 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     return (bearing + 360) % 360;
   };
 
-  // Get wind direction symbol based on degrees
-  const getWindDirectionSymbol = (degrees: number): string => {
-    const directions = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+  // Get wind direction compass point based on degrees
+  const getWindDirectionCompass = (degrees: number): string => {
+    const directions = ['N', 'NØ', 'Ø', 'SØ', 'S', 'SV', 'V', 'NV'];
     const index = Math.round(degrees / 45) % 8;
     return directions[index];
   };
@@ -125,71 +128,118 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
             Værvarsel for ruten
           </CardTitle>
           {routeData && (
-            <p className="text-sm text-gray-600">
-              {new Date(`${routeData.startDate}T${routeData.startTime}`).toLocaleString('no-NO')} - 
-              {routeData.duration} timer sykkeltur
-              {routeData.avgSpeed && ` (${routeData.avgSpeed} km/h)`}
-            </p>
+            <div className="space-y-1">
+              <p className="text-sm text-gray-600">
+                {new Date(`${routeData.startDate}T${routeData.startTime}`).toLocaleString('no-NO')} -
+                {routeData.duration} timer sykkeltur
+                {routeData.avgSpeed && ` (${routeData.avgSpeed} km/h)`}
+                {routeLength && ` - ${routeLength.toFixed(1)} km`}
+              </p>
+              <p className="text-xs text-gray-500">Alle tidspunkt vises i lokal tid ({Intl.DateTimeFormat().resolvedOptions().timeZone})</p>
+            </div>
           )}
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-2">
             {weatherData.map((weather, index) => {
               const routeBearing = getRouteBearingForPoint(index);
               const windFromDegrees = parseFloat(weather.windDirection.replace(/[^0-9.-]/g, '')) || 0;
               const windEffect = routeBearing ? getWindEffect(windFromDegrees, routeBearing) : 'crosswind';
               const windColor = getWindColor(weather.windSpeed, windEffect);
-              const windSymbol = getWindDirectionSymbol(windFromDegrees);
+              const windCompass = getWindDirectionCompass(windFromDegrees);
+              const showGust = weather.windGust > weather.windSpeed + 1;
+              const tempDiff = Math.abs(weather.temperature - weather.feelsLike);
+              const showFeelsLike = tempDiff >= 2; // Only show feels-like if it differs by 2°C or more
+              
+              // State for showing/hiding raw data
+              const [showRawData, setShowRawData] = useState(false);
               
               return (
-                <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    {getWeatherIcon(weather.description)}
-                    <div>
-                      <h4 className="font-medium">{weather.location}</h4>
-                      <p className="text-sm text-gray-500">Kl. {weather.time}</p>
-                      <p className="text-xs text-gray-400">
-                        {weather.lat.toFixed(3)}, {weather.lon.toFixed(3)}
-                      </p>
+                <div key={index} className="flex flex-col py-2 px-3 border rounded-lg text-sm">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      {getWeatherIcon(weather.description)}
+                      <div>
+                        <h4 className="font-medium">{weather.location}</h4>
+                        <p className="text-xs text-gray-500">Kl. {weather.time} (lokal tid)</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {weather.description}
+                      </Badge>
+                      
+                      <button
+                        onClick={() => setShowRawData(!showRawData)}
+                        className="p-1 rounded hover:bg-gray-100"
+                        title="Vis rådata for debugging"
+                      >
+                        <Code className="h-4 w-4 text-gray-500" />
+                        {showRawData ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      </button>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <div className={`text-lg font-semibold ${getTemperatureColor(weather.temperature)}`}>
-                        {weather.temperature}°C
-                      </div>
-                      <div className="text-xs text-gray-500">Temp</div>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="text-sm font-medium text-blue-600">
-                        {weather.precipitation}mm
-                      </div>
-                      <div className="text-xs text-gray-500">Nedbør</div>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className={`text-sm font-medium flex items-center gap-1 ${windColor}`}>
-                        <span className="text-lg">{windSymbol}</span>
-                        <span>{weather.windSpeed} m/s</span>
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {weather.windSpeed >= 4 && routeBearing && (
-                          <span className={windColor}>
-                            {windEffect === 'headwind' && 'Motvind'}
-                            {windEffect === 'tailwind' && 'Medvind'}
-                            {windEffect === 'crosswind' && 'Sidevind'}
+                  <div className="grid grid-cols-3 gap-2 mt-1">
+                    <div className="flex items-center gap-1">
+                      <Thermometer className="h-3 w-3 text-gray-500" />
+                      <div>
+                        <span className={`font-semibold ${getTemperatureColor(weather.temperature)}`}>
+                          {weather.temperature}°C
+                        </span>
+                        {showFeelsLike && (
+                          <span className="text-xs text-gray-500 ml-1">
+                            (føles {weather.feelsLike}°)
                           </span>
                         )}
-                        {weather.windSpeed < 4 && 'Svak vind'}
                       </div>
                     </div>
                     
-                    <Badge variant="outline" className="ml-2">
-                      {weather.description}
-                    </Badge>
+                    <div className="flex items-center gap-1">
+                      <Droplets className="h-3 w-3 text-blue-500" />
+                      <div>
+                        <span className="text-blue-600">{weather.precipitation}mm</span>
+                        <span className="text-xs text-gray-500 ml-1">{weather.humidity}%</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-1">
+                      <Cloud className="h-3 w-3 text-gray-500" />
+                      <span className="text-gray-600">{weather.cloudCover}%</span>
+                      {weather.uvIndex && weather.uvIndex > 2 && (
+                        <span className="text-xs text-orange-500 ml-1">UV: {Math.round(weather.uvIndex)}</span>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-1 col-span-3">
+                      <Wind className="h-3 w-3 text-gray-500" />
+                      <div className={`flex items-center gap-1 ${windColor}`}>
+                        <span>{windCompass}</span>
+                        <span>
+                          {weather.windSpeed}
+                          {showGust && <span> ({weather.windGust})</span>} m/s
+                        </span>
+                        <span className="text-xs ml-1">
+                          {weather.windSpeed >= 4 && routeBearing && (
+                            <span className={windColor}>
+                              {windEffect === 'headwind' && 'Motvind'}
+                              {windEffect === 'tailwind' && 'Medvind'}
+                              {windEffect === 'crosswind' && 'Sidevind'}
+                            </span>
+                          )}
+                          {weather.windSpeed < 4 && 'Svak vind'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
+                  
+                  {/* Raw data for debugging */}
+                  {showRawData && (
+                    <div className="mt-2 p-2 bg-gray-50 rounded text-xs font-mono overflow-auto max-h-60">
+                      <pre>{weather.rawData}</pre>
+                    </div>
+                  )}
                 </div>
               );
             })}

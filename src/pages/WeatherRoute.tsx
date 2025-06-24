@@ -16,18 +16,27 @@ export interface WeatherPrediction {
   location: string;
   time: string;
   temperature: number;
+  feelsLike: number;
   precipitation: number;
+  humidity: number;
+  cloudCover: number;
   windSpeed: number;
+  windGust: number;
   windDirection: string;
+  pressure: number;
+  uvIndex?: number;
   description: string;
   lat: number;
   lon: number;
+  rawData: string; // Raw timeseries data as JSON string for debugging
 }
 
 const WeatherRoute = () => {
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherPrediction[] | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<{lat: number, lon: number}[] | null>(null);
+  const [routeLength, setRouteLength] = useState<number | null>(null);
+  const [avgSpeed, setAvgSpeed] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const getLocationName = async (lat: number, lon: number): Promise<string> => {
@@ -60,6 +69,31 @@ const WeatherRoute = () => {
     }
   };
 
+  // Calculate distance between two points using Haversine formula
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in km
+  };
+
+  // Calculate total route length in kilometers
+  const calculateRouteLength = (points: {lat: number, lon: number}[]): number => {
+    let totalDistance = 0;
+    for (let i = 0; i < points.length - 1; i++) {
+      totalDistance += calculateDistance(
+        points[i].lat, points[i].lon,
+        points[i+1].lat, points[i+1].lon
+      );
+    }
+    return totalDistance;
+  };
+
   const handleRouteSubmit = async (data: RouteData) => {
     setIsLoading(true);
     setRouteData(data);
@@ -85,6 +119,14 @@ const WeatherRoute = () => {
       }
       
       setRouteCoordinates(trackPoints);
+      
+      // Calculate route length
+      const length = calculateRouteLength(trackPoints);
+      setRouteLength(length);
+      
+      // Calculate average speed (km/h) based on route length and duration
+      const speed = Math.round(length / data.duration);
+      setAvgSpeed(speed);
       
       // Calculate points with maximum 90 minutes between them
       const maxIntervalMinutes = 90;
@@ -125,7 +167,7 @@ const WeatherRoute = () => {
         }
         
         const response = await fetch(
-          `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${point.lat}&lon=${point.lon}`,
+          `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${point.lat}&lon=${point.lon}`,
           {
             headers: {
               'User-Agent': 'SykkelvaerApp/1.0 (your-email@example.com)'
@@ -138,23 +180,73 @@ const WeatherRoute = () => {
         }
         
         const weatherResponse = await response.json();
-        const currentWeather = weatherResponse.properties.timeseries[0];
         
         // Calculate time for this point based on route progression
-        const startDateTime = new Date(`${data.startDate}T${data.startTime}`);
+        // Ensure we're working with local time by explicitly setting it
+        const [year, month, day] = data.startDate.split('-').map(Number);
+        const [hours, minutes] = data.startTime.split(':').map(Number);
+        
+        // Create date in local time zone
+        const startDateTime = new Date(year, month - 1, day, hours, minutes);
         const hoursFromStart = (index / (selectedPoints.length - 1)) * data.duration;
         const pointTime = new Date(startDateTime.getTime() + hoursFromStart * 60 * 60 * 1000);
         
+        console.log(`Target time for point ${index} (${locationName}): ${pointTime.toISOString()}`);
+        
+        // Find the timeseries entry closest to our target time
+        const timeseries = weatherResponse.properties.timeseries;
+        let closestTimeseriesIndex = 0;
+        let minTimeDifference = Infinity;
+        
+        timeseries.forEach((entry: any, i: number) => {
+          const entryTime = new Date(entry.time).getTime();
+          const targetTime = pointTime.getTime();
+          const timeDiff = Math.abs(entryTime - targetTime);
+          
+          if (timeDiff < minTimeDifference) {
+            minTimeDifference = timeDiff;
+            closestTimeseriesIndex = i;
+          }
+        });
+        
+        // Use the closest timeseries entry
+        const currentWeather = timeseries[closestTimeseriesIndex];
+        console.log(`Using timeseries entry with time: ${currentWeather.time} (difference: ${Math.round(minTimeDifference / (60 * 1000))} minutes)`);
+        
+        const details = currentWeather.data.instant.details;
+        
+        // Store raw timeseries data for debugging
+        const rawTimeseriesData = JSON.stringify(currentWeather, null, 2);
+        
+        
+        // Calculate feels-like temperature using wind chill and heat index
+        const feelsLike = calculateFeelsLikeTemperature(
+          details.air_temperature,
+          details.wind_speed,
+          details.relative_humidity || 50
+        );
+        
         return {
           location: locationName,
-          time: pointTime.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' }),
-          temperature: Math.round(currentWeather.data.instant.details.air_temperature),
-          precipitation: currentWeather.data.next_1_hours?.details.precipitation_amount || 0,
-          windSpeed: Math.round(currentWeather.data.instant.details.wind_speed),
-          windDirection: getWindDirection(currentWeather.data.instant.details.wind_from_direction),
-          description: getWeatherDescription(currentWeather.data.next_1_hours?.summary.symbol_code || 'clearsky_day'),
+          time: pointTime.toLocaleTimeString('no-NO', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone // Explicitly use local time zone
+          }),
+          temperature: Math.round(details.air_temperature),
+          feelsLike: Math.round(feelsLike),
+          precipitation: getPrecipitation(currentWeather.data),
+          humidity: Math.round(details.relative_humidity || 0),
+          cloudCover: Math.round(details.cloud_area_fraction || 0),
+          windSpeed: Math.round(details.wind_speed),
+          windGust: Math.round(details.wind_speed_of_gust || details.wind_speed),
+          windDirection: getWindDirection(details.wind_from_direction),
+          pressure: Math.round(details.air_pressure_at_sea_level || 1013),
+          uvIndex: details.ultraviolet_index_clear_sky,
+          description: getWeatherSymbolDescription(currentWeather.data),
           lat: point.lat,
-          lon: point.lon
+          lon: point.lon,
+          rawData: rawTimeseriesData
         };
       });
       
@@ -168,29 +260,147 @@ const WeatherRoute = () => {
     }
   };
   
+  // Calculate feels-like temperature using wind chill for cold temperatures
+  // and heat index for warm temperatures with humidity
+  const calculateFeelsLikeTemperature = (temp: number, windSpeed: number, humidity: number): number => {
+    // Wind chill formula (for temperatures below 10°C and wind speed above 4.8 km/h)
+    if (temp < 10 && windSpeed > 1.3) {
+      // Convert m/s to km/h for the formula
+      const windSpeedKmh = windSpeed * 3.6;
+      return 13.12 + 0.6215 * temp - 11.37 * Math.pow(windSpeedKmh, 0.16) + 0.3965 * temp * Math.pow(windSpeedKmh, 0.16);
+    }
+    
+    // Heat index formula (for temperatures above 20°C and humidity above 40%)
+    if (temp > 20 && humidity > 40) {
+      return -8.784695 + 1.61139411 * temp + 2.338549 * humidity - 0.14611605 * temp * humidity - 0.012308094 * Math.pow(temp, 2) - 0.016424828 * Math.pow(humidity, 2) + 0.002211732 * Math.pow(temp, 2) * humidity + 0.00072546 * temp * Math.pow(humidity, 2) - 0.000003582 * Math.pow(temp, 2) * Math.pow(humidity, 2);
+    }
+    
+    // If neither condition is met, return the actual temperature
+    return temp;
+  };
+
   const getWindDirection = (degrees: number): string => {
     const directions = ['N', 'NØ', 'Ø', 'SØ', 'S', 'SV', 'V', 'NV'];
     const index = Math.round(degrees / 45) % 8;
     return directions[index];
   };
   
+  // Get precipitation amount with fallbacks to different time periods
+  const getPrecipitation = (data: any): number => {
+    // Try to get precipitation from different time periods, in order of preference
+    if (data.next_1_hours?.details?.precipitation_amount !== undefined) {
+      return data.next_1_hours.details.precipitation_amount;
+    }
+    
+    if (data.next_6_hours?.details?.precipitation_amount !== undefined) {
+      // Divide by 6 to get an approximate hourly rate
+      return Math.round((data.next_6_hours.details.precipitation_amount / 6) * 10) / 10;
+    }
+    
+    if (data.next_12_hours?.details?.precipitation_amount !== undefined) {
+      // Divide by 12 to get an approximate hourly rate
+      return Math.round((data.next_12_hours.details.precipitation_amount / 12) * 10) / 10;
+    }
+    
+    // Default to 0 if no precipitation data is available
+    return 0;
+  };
+  
+  // Get weather symbol description with fallbacks to different time periods
+  const getWeatherSymbolDescription = (data: any): string => {
+    // Try to get symbol code from different time periods, in order of preference
+    let symbolCode = 'clearsky_day'; // Default
+    
+    if (data.next_1_hours?.summary?.symbol_code) {
+      symbolCode = data.next_1_hours.summary.symbol_code;
+    } else if (data.next_6_hours?.summary?.symbol_code) {
+      symbolCode = data.next_6_hours.summary.symbol_code;
+    } else if (data.next_12_hours?.summary?.symbol_code) {
+      symbolCode = data.next_12_hours.summary.symbol_code;
+    }
+    
+    return getWeatherDescription(symbolCode);
+  };
+  
+  // Convert symbol code to Norwegian weather description
   const getWeatherDescription = (symbolCode: string): string => {
+    // Extract the base weather condition without day/night suffix
+    const baseCode = symbolCode.replace('_day', '').replace('_night', '').replace('_polartwilight', '');
+    
+    // Map of all weather conditions from Met.no API to Norwegian descriptions
     const descriptions: { [key: string]: string } = {
-      'clearsky_day': 'Klart',
-      'clearsky_night': 'Klart',
-      'fair_day': 'Lettskyet',
-      'fair_night': 'Lettskyet',
-      'partlycloudy_day': 'Delvis skyet',
-      'partlycloudy_night': 'Delvis skyet',
+      // Clear conditions
+      'clearsky': 'Klart',
+      'fair': 'Lettskyet',
+      
+      // Cloudy conditions
+      'partlycloudy': 'Delvis skyet',
       'cloudy': 'Skyet',
-      'rainshowers_day': 'Regnbyger',
-      'rainshowers_night': 'Regnbyger',
-      'rain': 'Regn',
+      
+      // Rain conditions
+      'lightrainshowers': 'Lette regnbyger',
+      'rainshowers': 'Regnbyger',
+      'heavyrainshowers': 'Kraftige regnbyger',
       'lightrain': 'Lett regn',
-      'heavyrain': 'Kraftig regn'
+      'rain': 'Regn',
+      'heavyrain': 'Kraftig regn',
+      
+      // Sleet conditions
+      'lightsleetshowers': 'Lette sluddbyger',
+      'sleetshowers': 'Sluddbyger',
+      'heavysleetshowers': 'Kraftige sluddbyger',
+      'lightsleet': 'Lett sludd',
+      'sleet': 'Sludd',
+      'heavysleet': 'Kraftig sludd',
+      
+      // Snow conditions
+      'lightsnowshowers': 'Lette snøbyger',
+      'snowshowers': 'Snøbyger',
+      'heavysnowshowers': 'Kraftige snøbyger',
+      'lightsnow': 'Lett snø',
+      'snow': 'Snø',
+      'heavysnow': 'Kraftig snø',
+      
+      // Thunderstorm conditions
+      'lightrainshowersandthunder': 'Lette regnbyger og torden',
+      'rainshowersandthunder': 'Regnbyger og torden',
+      'heavyrainshowersandthunder': 'Kraftige regnbyger og torden',
+      'lightrainandthunder': 'Lett regn og torden',
+      'rainandthunder': 'Regn og torden',
+      'heavyrainandthunder': 'Kraftig regn og torden',
+      
+      // Mixed precipitation and thunder
+      'lightsleetshowersandthunder': 'Lette sluddbyger og torden',
+      'sleetshowersandthunder': 'Sluddbyger og torden',
+      'heavysleetshowersandthunder': 'Kraftige sluddbyger og torden',
+      'lightsleetandthunder': 'Lett sludd og torden',
+      'sleetandthunder': 'Sludd og torden',
+      'heavysleetandthunder': 'Kraftig sludd og torden',
+      
+      // Snow and thunder
+      'lightsnowshowersandthunder': 'Lette snøbyger og torden',
+      'snowshowersandthunder': 'Snøbyger og torden',
+      'heavysnowshowersandthunder': 'Kraftige snøbyger og torden',
+      'lightsnowandthunder': 'Lett snø og torden',
+      'snowandthunder': 'Snø og torden',
+      'heavysnowandthunder': 'Kraftig snø og torden',
+      
+      // Fog
+      'fog': 'Tåke'
     };
     
-    return descriptions[symbolCode] || 'Ukjent';
+    // First try to match the exact symbol code
+    if (descriptions[symbolCode]) {
+      return descriptions[symbolCode];
+    }
+    
+    // If not found, try to match the base code
+    if (descriptions[baseCode]) {
+      return descriptions[baseCode];
+    }
+    
+    // If still not found, return the original code with first letter capitalized
+    return symbolCode.charAt(0).toUpperCase() + symbolCode.slice(1).replace('_', ' ') || 'Ukjent';
   };
 
   return (
@@ -211,11 +421,15 @@ const WeatherRoute = () => {
           </div>
           
           <div className="space-y-6">
-            {weatherData && (
-              <WeatherDisplay 
-                weatherData={weatherData} 
-                routeData={routeData}
+            {weatherData && routeData && (
+              <WeatherDisplay
+                weatherData={weatherData}
+                routeData={{
+                  ...routeData,
+                  avgSpeed: avgSpeed || undefined
+                }}
                 routeCoordinates={routeCoordinates}
+                routeLength={routeLength}
               />
             )}
           </div>

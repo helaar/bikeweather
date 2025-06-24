@@ -17,7 +17,6 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('08:00');
   const [duration, setDuration] = useState(0);
-  const [avgSpeed, setAvgSpeed] = useState<number | undefined>(undefined);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +25,7 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
         gpxFile,
         startDate,
         startTime,
-        duration,
-        avgSpeed
+        duration
       });
     }
   };
@@ -100,39 +98,21 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="duration" className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Varighet (timer)
-              </Label>
-              <Input
-                id="duration"
-                type="number"
-                min="1"
-                max="24"
-                placeholder="8"
-                value={duration || ''}
-                onChange={(e) => setDuration(parseInt(e.target.value) || 0)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="avgSpeed" className="flex items-center gap-2">
-                <Bike className="h-4 w-4" />
-                Snittfart (km/h)
-              </Label>
-              <Input
-                id="avgSpeed"
-                type="number"
-                min="5"
-                max="50"
-                placeholder="20"
-                value={avgSpeed || ''}
-                onChange={(e) => setAvgSpeed(parseInt(e.target.value) || undefined)}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="duration" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Varighet (timer)
+            </Label>
+            <Input
+              id="duration"
+              type="number"
+              min="1"
+              max="24"
+              placeholder="8"
+              value={duration || ''}
+              onChange={(e) => setDuration(parseInt(e.target.value) || 0)}
+              required
+            />
           </div>
 
           <Button 
