@@ -3,7 +3,23 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { WeatherPrediction, RouteData } from '@/pages/WeatherRoute';
-import { Cloud, CloudRain, Sun, MapPin, Droplets, Thermometer, Wind, Code, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  Cloud,
+  CloudRain,
+  CloudLightning,
+  CloudSnow,
+  CloudFog,
+  CloudDrizzle,
+  Sun,
+  MapPin,
+  Droplets,
+  Thermometer,
+  Wind,
+  Code,
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle
+} from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface WeatherDisplayProps {
@@ -33,12 +49,67 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     // Convert to lowercase for case-insensitive comparison
     const lowerDesc = description.toLowerCase();
     
-    if (lowerDesc.includes('regn')) {
+    // Thunderstorm conditions
+    if (lowerDesc.includes('torden')) {
+      return <CloudLightning className="h-5 w-5 text-purple-500" />;
+    }
+    
+    // Heavy rain conditions
+    if (lowerDesc.includes('kraftig regn') || lowerDesc.includes('heavyrain')) {
+      return (
+        <div className="relative">
+          <CloudRain className="h-5 w-5 text-blue-700" />
+          <AlertTriangle className="h-3 w-3 text-red-500 absolute -top-1 -right-1" />
+        </div>
+      );
+    }
+    
+    // Regular rain conditions
+    if (lowerDesc.includes('regn') || lowerDesc.includes('rain')) {
       return <CloudRain className="h-5 w-5 text-blue-500" />;
     }
+    
+    // Drizzle conditions
+    if (lowerDesc.includes('lett regn') || lowerDesc.includes('lightrain') || lowerDesc.includes('drizzle')) {
+      return <CloudDrizzle className="h-5 w-5 text-blue-400" />;
+    }
+    
+    // Snow conditions
+    if (lowerDesc.includes('snø') || lowerDesc.includes('snow')) {
+      return <CloudSnow className="h-5 w-5 text-blue-200" />;
+    }
+    
+    // Sleet conditions
+    if (lowerDesc.includes('sludd') || lowerDesc.includes('sleet')) {
+      return (
+        <div className="relative">
+          <CloudRain className="h-5 w-5 text-blue-400" />
+          <CloudSnow className="h-3 w-3 text-blue-200 absolute -top-1 -right-1" />
+        </div>
+      );
+    }
+    
+    // Fog conditions
+    if (lowerDesc.includes('tåke') || lowerDesc.includes('fog')) {
+      return <CloudFog className="h-5 w-5 text-gray-400" />;
+    }
+    
+    // Cloudy conditions
     if (lowerDesc.includes('skyet') || lowerDesc.includes('cloudy')) {
       return <Cloud className="h-5 w-5 text-gray-500" />;
     }
+    
+    // Partly cloudy conditions
+    if (lowerDesc.includes('delvis skyet') || lowerDesc.includes('partlycloudy') || lowerDesc.includes('lettskyet') || lowerDesc.includes('fair')) {
+      return (
+        <div className="relative">
+          <Cloud className="h-5 w-5 text-gray-400" />
+          <Sun className="h-3 w-3 text-yellow-500 absolute -top-1 -right-1" />
+        </div>
+      );
+    }
+    
+    // Default: clear/sunny
     return <Sun className="h-5 w-5 text-yellow-500" />;
   };
 
