@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { RouteForm } from '@/components/RouteForm';
 import { WeatherDisplay } from '@/components/WeatherDisplay';
 import { RouteMap } from '@/components/RouteMap';
@@ -99,6 +99,10 @@ const WeatherRoute = () => {
     setRouteData(data);
     
     console.log('Route data submitted:', data);
+    
+    // Track if the route came from Strava for analytics
+    const routeSource = data.gpxFile.name.includes('strava') ? 'strava' : 'upload';
+    console.log('Route source:', routeSource);
     
     try {
       // Parse GPX file to get coordinates

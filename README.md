@@ -68,6 +68,69 @@ This application uses the following external APIs:
 
 - **Yr Weather API**: For detailed weather forecasts
 - **OpenStreetMap Nominatim API**: For reverse geocoding (converting coordinates to location names)
+- **Strava API**: For importing routes from Strava (requires configuration)
+
+### Strava API Configuration
+
+To enable Strava integration, you need to:
+
+1. **Create a Strava API Application**:
+   - Go to [Strava API Settings](https://www.strava.com/settings/api)
+   - Create a new application
+   - Set the "Authorization Callback Domain" to your app's domain (e.g., `helaar.github.io` or `localhost` for local testing)
+
+2. **Set Up Environment Variables**:
+   - Create a `.env.local` file in the project root (this file is git-ignored)
+   - Add your Strava API credentials:
+     ```
+     VITE_STRAVA_CLIENT_ID=your_client_id
+     VITE_STRAVA_CLIENT_SECRET=your_client_secret
+     ```
+   - For production deployment, set these environment variables in your hosting platform
+
+3. **For GitHub Pages Deployment**:
+   - Add these secrets to your GitHub repository:
+     - Go to your repository → Settings → Secrets and variables → Actions
+     - Add `VITE_STRAVA_CLIENT_ID` and `VITE_STRAVA_CLIENT_SECRET` as repository secrets
+   - Update the GitHub Actions workflow to include these secrets:
+     ```yaml
+     # In .github/workflows/deploy.yml
+     env:
+       VITE_STRAVA_CLIENT_ID: ${{ secrets.VITE_STRAVA_CLIENT_ID }}
+       VITE_STRAVA_CLIENT_SECRET: ${{ secrets.VITE_STRAVA_CLIENT_SECRET }}
+     ```
+
+4. **Using Strava Integration**:
+   - Users can connect their Strava account via the "Strava-ruter" tab in the route form
+   - After authentication, they can browse and select their saved Strava routes
+   - Selected routes are automatically converted to GPX format for weather forecasting
+
+### Technical Implementation
+
+The Strava integration uses the following approach:
+
+1. **Authentication**: Standard OAuth 2.0 flow for secure authentication with Strava
+2. **Route Listing**: Fetches user's routes from the Strava API
+3. **Route Data**: Uses multiple fallback methods to obtain route coordinates:
+   - Full polyline from route details (most accurate)
+   - Summary polyline from route details
+   - Summary polyline from routes list
+   - Start/end points for simple route generation (least accurate, but always available)
+4. **GPX Generation**: Converts polyline coordinates to GPX format for compatibility with the weather forecast system
+
+### Known Limitations
+
+Due to Strava API restrictions, there are some limitations to the integration:
+
+1. **Route Accuracy**: The polyline data from Strava is a simplified representation of the route. While sufficient for weather forecasting along a route, it may not contain the exact elevation data or all waypoints of the original route.
+
+2. **Authentication**: Strava's OAuth tokens expire after 6 hours. The application will attempt to refresh tokens automatically, but users may need to re-authenticate periodically.
+
+3. **Rate Limits**: Strava API has rate limits (100 requests per 15 minutes and 1000 per day). Heavy usage may result in temporary API access restrictions.
+
+4. **Mobile Limitations**: The Strava mobile app has limited GPX export capabilities. This integration works around that by using the route's polyline data directly, allowing users to access their routes without needing to export GPX files manually.
+
+5. **API Resilience**: The integration implements multiple fallback mechanisms to handle various API limitations and edge cases, ensuring that users can access their routes even when certain API endpoints are unavailable or return incomplete data.
 
 ## 🧪 Development
 
