@@ -24,10 +24,20 @@ const REDIRECT_URI = window.location.origin + '/bikeweather/strava-callback';
 
 // Validate that environment variables are set
 if (!STRAVA_CLIENT_ID || !STRAVA_CLIENT_SECRET) {
-  console.warn(
-    'Strava API credentials not found in environment variables. ' +
-    'Strava integration will not work until you set VITE_STRAVA_CLIENT_ID and VITE_STRAVA_CLIENT_SECRET.'
-  );
+  // Check if we're in a GitHub Pages environment or any production build
+  const isProduction = import.meta.env.PROD ||
+                       import.meta.env.MODE === 'production' ||
+                       import.meta.env.MODE === 'github-pages';
+  
+  const message = isProduction
+    ? 'Strava API credentials not found in environment variables. ' +
+      'For GitHub Pages deployment, make sure to add VITE_STRAVA_CLIENT_ID and VITE_STRAVA_CLIENT_SECRET ' +
+      'as repository secrets in your GitHub repository (Settings → Secrets and variables → Actions).'
+    : 'Strava API credentials not found in environment variables. ' +
+      'Create a .env.local file with VITE_STRAVA_CLIENT_ID and VITE_STRAVA_CLIENT_SECRET values.';
+  
+  console.warn(message);
+  console.log('Current environment mode:', import.meta.env.MODE);
 }
 
 // Scopes needed for reading routes and activities

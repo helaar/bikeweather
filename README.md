@@ -89,16 +89,44 @@ To enable Strava integration, you need to:
    - For production deployment, set these environment variables in your hosting platform
 
 3. **For GitHub Pages Deployment**:
-   - Add these secrets to your GitHub repository:
+   - **IMPORTANT**: You must add these secrets to your GitHub repository:
      - Go to your repository → Settings → Secrets and variables → Actions
-     - Add `VITE_STRAVA_CLIENT_ID` and `VITE_STRAVA_CLIENT_SECRET` as repository secrets
-   - Update the GitHub Actions workflow to include these secrets:
+     - Click "New repository secret"
+     - Add `VITE_STRAVA_CLIENT_ID` with your Strava Client ID as the value
+     - Add `VITE_STRAVA_CLIENT_SECRET` with your Strava Client Secret as the value
+   - The GitHub Actions workflow is already configured to use these secrets:
      ```yaml
      # In .github/workflows/deploy.yml
      env:
        VITE_STRAVA_CLIENT_ID: ${{ secrets.VITE_STRAVA_CLIENT_ID }}
        VITE_STRAVA_CLIENT_SECRET: ${{ secrets.VITE_STRAVA_CLIENT_SECRET }}
+       GITHUB_ACTIONS: 'true'
      ```
+   - If you see the error "Strava API credentials not found in environment variables" after deployment:
+     - This means the secrets are not properly set in your GitHub repository
+     - Double-check that you've added both secrets with the correct names and values
+     - Verify that the secrets are available to the workflow (they should be visible as masked values in the workflow logs)
+     - Trigger a new deployment after adding the secrets
+
+### Troubleshooting GitHub Pages Deployment
+
+If you encounter issues with the Strava integration on GitHub Pages:
+
+1. **Check Repository Secrets**:
+   - Ensure both `VITE_STRAVA_CLIENT_ID` and `VITE_STRAVA_CLIENT_SECRET` are set as repository secrets
+   - Repository secrets are case-sensitive and should match exactly as shown
+
+2. **Verify Workflow Permissions**:
+   - Make sure the GitHub Actions workflow has permission to access the secrets
+   - This is usually configured automatically, but can be checked in repository settings
+
+3. **Check Build Logs**:
+   - Review the GitHub Actions build logs for any errors
+   - Look for messages about missing environment variables
+
+4. **Test Locally First**:
+   - Test the Strava integration locally with a `.env.local` file before deploying
+   - This helps isolate whether the issue is with the code or the deployment configuration
 
 4. **Using Strava Integration**:
    - Users can connect their Strava account via the "Strava-ruter" tab in the route form

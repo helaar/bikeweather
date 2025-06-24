@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStrava } from '@/hooks/use-strava';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +8,14 @@ import { StravaIcon } from '@/components/icons/StravaIcon';
 
 export const StravaAuth: React.FC = () => {
   const { isAuthenticated, isLoading, athlete, login, logout } = useStrava();
+  const [hasCredentials, setHasCredentials] = useState(true);
+  
+  useEffect(() => {
+    // Check if Strava API credentials are set
+    const clientId = import.meta.env.VITE_STRAVA_CLIENT_ID;
+    const clientSecret = import.meta.env.VITE_STRAVA_CLIENT_SECRET;
+    setHasCredentials(Boolean(clientId && clientSecret));
+  }, []);
 
   if (isLoading) {
     return (
@@ -27,7 +35,39 @@ export const StravaAuth: React.FC = () => {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!hasCredentials) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <StravaIcon className="h-5 w-5 text-orange-500" />
+            Strava-tilkobling
+          </CardTitle>
+          <CardDescription>
+            Strava API-nøkler mangler
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="p-4 border border-amber-200 rounded bg-amber-50">
+            <h4 className="font-medium text-amber-800">Strava-integrasjon er ikke konfigurert</h4>
+            <p className="text-sm text-amber-700 mt-2">
+              {(import.meta.env.PROD ||
+                import.meta.env.MODE === 'production' ||
+                import.meta.env.MODE === 'github-pages')
+                ? 'For GitHub Pages-distribusjon må du legge til Strava API-nøkler som repository secrets.'
+                : 'Du må opprette en .env.local fil med Strava API-nøkler.'}
+            </p>
+            <p className="text-xs text-amber-600 mt-1">
+              Gjeldende miljø: {import.meta.env.MODE || 'development'}
+            </p>
+            <p className="text-sm text-amber-700 mt-2">
+              Se README.md for instruksjoner om hvordan du setter opp Strava-integrasjonen.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  } else if (!isAuthenticated) {
     return (
       <Card>
         <CardHeader>
@@ -47,7 +87,7 @@ export const StravaAuth: React.FC = () => {
             </p>
             <Button 
               onClick={login}
-              className="bg-orange-500 hover:bg-orange-600"
+              className="bg-orange-500 hover:bg-orange-600 flex items-center gap-2"
             >
               Koble til Strava
             </Button>

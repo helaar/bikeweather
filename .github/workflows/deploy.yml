@@ -40,6 +40,8 @@ jobs:
         env:
           VITE_STRAVA_CLIENT_ID: ${{ secrets.VITE_STRAVA_CLIENT_ID }}
           VITE_STRAVA_CLIENT_SECRET: ${{ secrets.VITE_STRAVA_CLIENT_SECRET }}
+          # Explicitly set GitHub Actions environment
+          GITHUB_ACTIONS: 'true'
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

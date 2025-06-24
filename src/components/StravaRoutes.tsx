@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useStrava } from '@/hooks/use-strava';
 import {
   getStravaRoutes,
@@ -26,6 +26,14 @@ export const StravaRoutes: React.FC<StravaRoutesProps> = ({ onRouteSelect }) => 
   const [loading, setLoading] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
   const [loadingGpx, setLoadingGpx] = useState(false);
+  const [hasCredentials, setHasCredentials] = useState(true);
+  
+  // Check if Strava API credentials are set
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_STRAVA_CLIENT_ID;
+    const clientSecret = import.meta.env.VITE_STRAVA_CLIENT_SECRET;
+    setHasCredentials(Boolean(clientId && clientSecret));
+  }, []);
 
   // Fetch routes when component mounts if authenticated
   useEffect(() => {
@@ -151,7 +159,39 @@ const handleRouteSelect = async (route: StravaRoute) => {
     });
   };
 
-  if (!isAuthenticated) {
+  if (!hasCredentials) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <StravaIcon className="h-5 w-5 text-orange-500" />
+            Strava-ruter
+          </CardTitle>
+          <CardDescription>
+            Strava API-nøkler mangler
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="p-4 border border-amber-200 rounded bg-amber-50">
+            <h4 className="font-medium text-amber-800">Strava-integrasjon er ikke konfigurert</h4>
+            <p className="text-sm text-amber-700 mt-2">
+              {(import.meta.env.PROD ||
+                import.meta.env.MODE === 'production' ||
+                import.meta.env.MODE === 'github-pages')
+                ? 'For GitHub Pages-distribusjon må du legge til Strava API-nøkler som repository secrets.'
+                : 'Du må opprette en .env.local fil med Strava API-nøkler.'}
+            </p>
+            <p className="text-xs text-amber-600 mt-1">
+              Gjeldende miljø: {import.meta.env.MODE || 'development'}
+            </p>
+            <p className="text-sm text-amber-700 mt-2">
+              Se README.md for instruksjoner om hvordan du setter opp Strava-integrasjonen.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  } else if (!isAuthenticated) {
     return (
       <Card>
         <CardHeader>
