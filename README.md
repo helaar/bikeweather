@@ -1,88 +1,116 @@
-# Welcome to your Lovable project
+# BikeWeather (Sykkelvær)
 
-## Project info
+A weather forecast application specifically designed for long-distance cyclists, providing detailed weather predictions along cycling routes.
 
-**URL**: https://lovable.dev/projects/16bd2156-9094-475d-884d-3942bd40524f
+![BikeWeather App](public/placeholder.svg)
 
-## How can I edit this code?
+## 🚲 Features
 
-There are several ways of editing your application.
+- **Strava Route Integration**: Upload GPX files from Strava to get weather data along your entire route
+- **Weather Forecasts**: Precise weather forecasts from the Norwegian Meteorological Institute (Yr)
+- **Route Planning**: Select date, duration, and get weather data tailored to your cycling speed
+- **Interactive Map**: Visualize your route with weather conditions at key points
+- **Wind Analysis**: Smart wind direction analysis showing headwind, tailwind, or crosswind relative to your cycling direction
+- **Detailed Weather Data**: Temperature, precipitation, humidity, wind speed, cloud cover, and more
+- **Mobile Responsive**: Works on all devices, perfect for planning on the go
 
-**Use Lovable**
+## 🛠️ Technology Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/16bd2156-9094-475d-884d-3942bd40524f) and start prompting.
+- **Frontend**: React 18 with TypeScript
+- **Build Tool**: Vite
+- **Routing**: React Router
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn/ui (Radix UI)
+- **Maps**: Leaflet
+- **API Integration**: Yr weather API, OpenStreetMap for geocoding
+- **Deployment**: GitHub Pages via GitHub Actions
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🚀 Getting Started
 
-**Use your preferred IDE**
+### Prerequisites
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Node.js (v18 or higher)
+- npm or yarn
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Installation
 
-Follow these steps:
+```bash
+# Clone the repository
+git clone https://github.com/helaar/bikeweather.git
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Navigate to the project directory
+cd bikeweather
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:8080/bikeweather/`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📱 Usage
 
-**Use GitHub Codespaces**
+1. **Upload Route**: Upload a GPX file containing your cycling route
+2. **Set Details**: Select your start date, time, and expected duration
+3. **Get Forecast**: The app will fetch weather data for points along your route
+4. **Analyze Weather**: View detailed weather information for each point, including:
+   - Temperature and feels-like temperature
+   - Precipitation amount and probability
+   - Wind speed, direction, and effect on cycling (headwind/tailwind)
+   - Cloud cover and humidity
+5. **View Map**: See your route on the map with weather indicators at key points
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🌐 API Usage
 
-## What technologies are used for this project?
+This application uses the following external APIs:
 
-This project is built with:
+- **Yr Weather API**: For detailed weather forecasts
+- **OpenStreetMap Nominatim API**: For reverse geocoding (converting coordinates to location names)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 🧪 Development
 
-## How can I deploy this project?
+### Available Scripts
 
-### Lovable Deployment
-Simply open [Lovable](https://lovable.dev/projects/16bd2156-9094-475d-884d-3942bd40524f) and click on Share -> Publish.
+- `npm run dev` - Start the development server
+- `npm run build` - Build the application for production
+- `npm run preview` - Preview the production build locally
+- `npm run deploy` - Deploy the application to GitHub Pages
 
-### GitHub Pages Deployment
-This project is configured to deploy to GitHub Pages automatically using GitHub Actions. When you push changes to the main branch, the GitHub Action will:
+### Project Structure
 
-1. Build the project
-2. Deploy it to GitHub Pages
+```
+bikeweather/
+├── public/             # Static assets
+├── src/
+│   ├── components/     # React components
+│   │   ├── RouteForm.tsx       # Form for route input
+│   │   ├── RouteMap.tsx        # Map display component
+│   │   └── WeatherDisplay.tsx  # Weather information display
+│   ├── pages/          # Page components
+│   │   ├── Index.tsx           # Landing page
+│   │   └── WeatherRoute.tsx    # Main application page
+│   ├── hooks/          # Custom React hooks
+│   ├── lib/            # Utility functions
+│   ├── App.tsx         # Main application component
+│   └── main.tsx        # Application entry point
+└── .github/workflows/  # GitHub Actions workflows
+```
 
-The deployed site will be available at: https://helaar.github.io/bikeweather/
+## 🌍 Deployment
 
-To manually trigger a deployment:
-1. Go to the GitHub repository
-2. Navigate to Actions
-3. Select the "Deploy to GitHub Pages" workflow
-4. Click "Run workflow"
+The application is automatically deployed to GitHub Pages when changes are pushed to the main branch. You can access the live version at:
 
-## Can I connect a custom domain to my Lovable project?
+[https://helaar.github.io/bikeweather/](https://helaar.github.io/bikeweather/)
 
-Yes, you can!
+## 📄 License
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 🙏 Acknowledgements
+
+- [Yr Weather API](https://api.met.no/) for providing reliable weather data
+- [OpenStreetMap](https://www.openstreetmap.org/) for mapping and geocoding services
+- [Leaflet](https://leafletjs.com/) for the interactive map implementation
+- [shadcn/ui](https://ui.shadcn.com/) for the beautiful UI components

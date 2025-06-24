@@ -1,5 +1,5 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "bikeweather",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist --repo https://${GH_TOKEN}@github.com/helaar/tour-weather-oracle.git"
+    "deploy": "gh-pages -d dist --repo https://${GH_TOKEN}@github.com/helaar/bikeweather.git"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -76,7 +76,6 @@
     "eslint-plugin-react-refresh": "^0.4.9",
     "gh-pages": "^6.3.0",
     "globals": "^15.9.0",
-    "lovable-tagger": "^1.1.7",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.11",
     "typescript": "^5.5.3",
