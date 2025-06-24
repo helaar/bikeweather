@@ -62,7 +62,22 @@ This project is built with:
 
 ## How can I deploy this project?
 
+### Lovable Deployment
 Simply open [Lovable](https://lovable.dev/projects/16bd2156-9094-475d-884d-3942bd40524f) and click on Share -> Publish.
+
+### GitHub Pages Deployment
+This project is configured to deploy to GitHub Pages automatically using GitHub Actions. When you push changes to the main branch, the GitHub Action will:
+
+1. Build the project
+2. Deploy it to GitHub Pages
+
+The deployed site will be available at: https://helaar.github.io/tour-weather-oracle/
+
+To manually trigger a deployment:
+1. Go to the GitHub repository
+2. Navigate to Actions
+3. Select the "Deploy to GitHub Pages" workflow
+4. Click "Run workflow"
 
 ## Can I connect a custom domain to my Lovable project?
 
