@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { Cloud, Route, Calendar } from 'lucide-react';
+import { Route, Calendar, Wind } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -14,7 +14,8 @@ const Index = () => {
         <div className="space-y-4">
           <div className="flex justify-center">
             <div className="p-4 bg-blue-500 rounded-full">
-              <Cloud className="h-12 w-12 text-white" />
+              {/* Partly cloudy emoji icon */}
+              <span className="text-5xl" role="img" aria-label="Partly cloudy">⛅</span>
             </div>
           </div>
           <h1 className="text-5xl font-bold text-gray-800">
@@ -40,7 +41,7 @@ const Index = () => {
 
           <Card>
             <CardHeader className="pb-3">
-              <Cloud className="h-8 w-8 text-green-500 mx-auto" />
+              <Wind className="h-8 w-8 text-green-500 mx-auto" />
               <CardTitle className="text-lg">Yr værtjeneste</CardTitle>
             </CardHeader>
             <CardContent>
