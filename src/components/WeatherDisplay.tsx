@@ -1,10 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { WeatherPrediction, RouteData } from '@/pages/WeatherRoute';
 import { Cloud, CloudRain, Sun, MapPin, Droplets, Thermometer, Wind, Code, ChevronDown, ChevronUp } from 'lucide-react';
-import { useState } from 'react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface WeatherDisplayProps {
   weatherData: WeatherPrediction[];
@@ -140,7 +140,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
           )}
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
+          <Accordion type="multiple" className="space-y-2">
             {weatherData.map((weather, index) => {
               const routeBearing = getRouteBearingForPoint(index);
               const windFromDegrees = parseFloat(weather.windDirection.replace(/[^0-9.-]/g, '')) || 0;
@@ -154,96 +154,141 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
               // State for showing/hiding raw data
               const [showRawData, setShowRawData] = useState(false);
               
+              // Wind effect text
+              const windEffectText = weather.windSpeed >= 4 && routeBearing
+                ? (windEffect === 'headwind' ? 'Motvind' : windEffect === 'tailwind' ? 'Medvind' : 'Sidevind')
+                : 'Svak vind';
+              
               return (
-                <div key={index} className="flex flex-col py-2 px-3 border rounded-lg text-sm">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      {getWeatherIcon(weather.description)}
-                      <div>
-                        <h4 className="font-medium">{weather.location}</h4>
-                        <p className="text-xs text-gray-500">Kl. {weather.time} (lokal tid)</p>
+                <AccordionItem key={index} value={`item-${index}`} className="border rounded-lg overflow-hidden">
+                  <AccordionTrigger className="py-2 px-3 hover:no-underline">
+                    <div className="flex items-center justify-between w-full">
+                      {/* Left side - icon, time, location */}
+                      <div className="flex items-center gap-3">
+                        {getWeatherIcon(weather.description)}
+                        <div>
+                          <h4 className="font-medium">
+                            <span>{weather.time}</span>
+                            <span className="mx-1">·</span>
+                            <span>{weather.location}</span>
+                          </h4>
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {weather.description}
-                      </Badge>
                       
-                      <button
-                        onClick={() => setShowRawData(!showRawData)}
-                        className="p-1 rounded hover:bg-gray-100"
-                        title="Vis rådata for debugging"
-                      >
-                        <Code className="h-4 w-4 text-gray-500" />
-                        {showRawData ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-2 mt-1">
-                    <div className="flex items-center gap-1">
-                      <Thermometer className="h-3 w-3 text-gray-500" />
-                      <div>
-                        <span className={`font-semibold ${getTemperatureColor(weather.temperature)}`}>
-                          {weather.temperature}°C
-                        </span>
-                        {showFeelsLike && (
-                          <span className="text-xs text-gray-500 ml-1">
-                            (føles {weather.feelsLike}°)
-                          </span>
+                      {/* Right side - precipitation (if > 0), temperature, and wind */}
+                      <div className="flex items-center gap-4">
+                        {weather.precipitation > 0 && (
+                          <div className="flex items-center gap-1">
+                            <Droplets className="h-3 w-3 text-blue-500" />
+                            <span className="text-blue-600">{weather.precipitation}mm</span>
+                          </div>
                         )}
+                        
+                        <div className="flex items-center gap-1">
+                          <span className={`font-semibold ${getTemperatureColor(weather.temperature)}`}>
+                            {weather.temperature}°C
+                          </span>
+                        </div>
+                        
+                        <div className={`flex items-center gap-1 ${windColor}`}>
+                          <span>{windCompass}</span>
+                          <span>
+                            {weather.windSpeed}
+                            {showGust && <span> ({weather.windGust})</span>} m/s
+                          </span>
+                          <span className="text-xs ml-1">
+                            {windEffectText}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-1">
-                      <Droplets className="h-3 w-3 text-blue-500" />
-                      <div>
-                        <span className="text-blue-600">{weather.precipitation}mm</span>
-                        <span className="text-xs text-gray-500 ml-1">{weather.humidity}%</span>
+                  </AccordionTrigger>
+                  
+                  <AccordionContent>
+                    <div className="px-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge variant="outline" className="text-xs">
+                          {weather.description}
+                        </Badge>
+                        
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowRawData(!showRawData);
+                          }}
+                          className="p-1 rounded hover:bg-gray-100"
+                          title="Vis rådata for debugging"
+                        >
+                          <Code className="h-4 w-4 text-gray-500" />
+                          {showRawData ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                        </button>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-1">
-                      <Cloud className="h-3 w-3 text-gray-500" />
-                      <span className="text-gray-600">{weather.cloudCover}%</span>
-                      {weather.uvIndex && weather.uvIndex > 2 && (
-                        <span className="text-xs text-orange-500 ml-1">UV: {Math.round(weather.uvIndex)}</span>
+                      
+                      <div className="grid grid-cols-3 gap-2 mt-1">
+                        <div className="flex items-center gap-1">
+                          <Thermometer className="h-3 w-3 text-gray-500" />
+                          <div>
+                            <span className={`font-semibold ${getTemperatureColor(weather.temperature)}`}>
+                              {weather.temperature}°C
+                            </span>
+                            <span className="text-xs text-gray-500 ml-1">
+                              (Føles som {weather.feelsLike}°C)
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-1">
+                          <Droplets className="h-3 w-3 text-blue-500" />
+                          <div>
+                            <span className="text-blue-600">{weather.precipitation}mm</span>
+                            {weather.precipitation > 0 && (
+                              <span className="text-xs text-blue-500 ml-1">
+                                (min/max: {Math.max(0, weather.precipitation - 0.5).toFixed(1)}-{(weather.precipitation + 0.5).toFixed(1)}mm)
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-500 ml-1">Luftfuktighet: {weather.humidity}%</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-1">
+                          <Cloud className="h-3 w-3 text-gray-500" />
+                          <span className="text-gray-600">{weather.cloudCover}%</span>
+                          {weather.uvIndex && weather.uvIndex > 2 && (
+                            <span className="text-xs text-orange-500 ml-1">UV: {Math.round(weather.uvIndex)}</span>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-1 col-span-3">
+                          <Wind className="h-3 w-3 text-gray-500" />
+                          <div className={`flex items-center gap-1 ${windColor}`}>
+                            <span>{windCompass}</span>
+                            <span>
+                              {weather.windSpeed} m/s
+                              {showGust && (
+                                <span className="ml-1">
+                                  (Vindkast: {weather.windGust} m/s)
+                                </span>
+                              )}
+                            </span>
+                            <span className="text-xs ml-1">
+                              {windEffectText}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Raw data for debugging */}
+                      {showRawData && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded text-xs font-mono overflow-auto max-h-60">
+                          <pre>{weather.rawData}</pre>
+                        </div>
                       )}
                     </div>
-                    
-                    <div className="flex items-center gap-1 col-span-3">
-                      <Wind className="h-3 w-3 text-gray-500" />
-                      <div className={`flex items-center gap-1 ${windColor}`}>
-                        <span>{windCompass}</span>
-                        <span>
-                          {weather.windSpeed}
-                          {showGust && <span> ({weather.windGust})</span>} m/s
-                        </span>
-                        <span className="text-xs ml-1">
-                          {weather.windSpeed >= 4 && routeBearing && (
-                            <span className={windColor}>
-                              {windEffect === 'headwind' && 'Motvind'}
-                              {windEffect === 'tailwind' && 'Medvind'}
-                              {windEffect === 'crosswind' && 'Sidevind'}
-                            </span>
-                          )}
-                          {weather.windSpeed < 4 && 'Svak vind'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Raw data for debugging */}
-                  {showRawData && (
-                    <div className="mt-2 p-2 bg-gray-50 rounded text-xs font-mono overflow-auto max-h-60">
-                      <pre>{weather.rawData}</pre>
-                    </div>
-                  )}
-                </div>
+                  </AccordionContent>
+                </AccordionItem>
               );
             })}
-          </div>
+          </Accordion>
         </CardContent>
       </Card>
     </div>
