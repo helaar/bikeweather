@@ -22,7 +22,7 @@ const Index = () => {
             Sykkelvær
           </h1>
           <p className="text-xl text-gray-600 max-w-lg mx-auto">
-            Få detaljerte værvarsler for dine langdistanse-sykkelturer basert på Strava-ruter og Yr værtjeneste
+            Få detaljerte værvarsler for sykkelturen basert på ruter fra Strava og værdata fra Yr
           </p>
         </div>
 

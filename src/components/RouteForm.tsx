@@ -44,7 +44,7 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload className="h-5 w-5" />
-          Rute informasjon
+          Ruteinformasjon
         </CardTitle>
       </CardHeader>
       <CardContent>

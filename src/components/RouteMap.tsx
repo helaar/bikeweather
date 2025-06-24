@@ -17,10 +17,13 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   const mapInstanceRef = useRef<any>(null);
 
   const getWeatherIcon = (description: string) => {
-    if (description.includes('regn') || description.includes('Regn')) {
+    // Convert to lowercase for case-insensitive comparison
+    const lowerDesc = description.toLowerCase();
+    
+    if (lowerDesc.includes('regn')) {
       return '🌧️';
     }
-    if (description.includes('skyet')) {
+    if (lowerDesc.includes('skyet') || lowerDesc.includes('cloudy')) {
       return '☁️';
     }
     return '☀️';
@@ -178,7 +181,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MapPin className="h-5 w-5" />
-          Rute og værvarselpunkter
+          Turen på kartet
         </CardTitle>
       </CardHeader>
       <CardContent>

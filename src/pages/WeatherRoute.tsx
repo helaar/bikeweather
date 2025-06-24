@@ -128,13 +128,24 @@ const WeatherRoute = () => {
       const speed = Math.round(length / data.duration);
       setAvgSpeed(speed);
       
-      // Calculate points with maximum 90 minutes between them
-      const maxIntervalMinutes = 90;
+      // Calculate forecast interval based on trip duration
+      let maxIntervalMinutes = 90; // Default interval for trips > 6 hours
+      
+      if (data.duration <= 2) {
+        // For trips of 2 hours or less: forecast every 30 minutes
+        maxIntervalMinutes = 30;
+      } else if (data.duration <= 6) {
+        // For trips between 2-6 hours: forecast every hour
+        maxIntervalMinutes = 60;
+      }
+      
       const maxIntervalHours = maxIntervalMinutes / 60;
       const minPointsNeeded = Math.max(2, Math.ceil(data.duration / maxIntervalHours) + 1);
       
+      console.log(`Using ${maxIntervalMinutes} minute intervals for ${data.duration} hour trip`);
+      
       // Ensure we don't exceed reasonable limits
-      const pointsToFetch = Math.min(minPointsNeeded, 20);
+      const pointsToFetch = Math.min(minPointsNeeded, 30);
       const interval = Math.floor(trackPoints.length / (pointsToFetch - 1));
       const selectedPoints = [];
       
@@ -411,7 +422,7 @@ const WeatherRoute = () => {
             Sykkelvær
           </h1>
           <p className="text-lg text-gray-600">
-            Værvarsel for langdistanse-syklister
+            Værvarsel for sykkelturen
           </p>
         </header>
 

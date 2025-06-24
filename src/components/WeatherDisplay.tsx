@@ -30,10 +30,13 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     }));
   };
   const getWeatherIcon = (description: string) => {
-    if (description.includes('regn') || description.includes('Regn')) {
+    // Convert to lowercase for case-insensitive comparison
+    const lowerDesc = description.toLowerCase();
+    
+    if (lowerDesc.includes('regn')) {
       return <CloudRain className="h-5 w-5 text-blue-500" />;
     }
-    if (description.includes('skyet')) {
+    if (lowerDesc.includes('skyet') || lowerDesc.includes('cloudy')) {
       return <Cloud className="h-5 w-5 text-gray-500" />;
     }
     return <Sun className="h-5 w-5 text-yellow-500" />;
@@ -135,7 +138,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5" />
-            Værvarsel for ruten
+            Værvarsel
           </CardTitle>
           {routeData && (
             <div className="space-y-1">
