@@ -19,6 +19,16 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
   routeCoordinates,
   routeLength
 }) => {
+  // State for showing/hiding raw data for each weather item
+  const [showRawDataItems, setShowRawDataItems] = useState<{[key: string]: boolean}>({});
+  
+  // Function to toggle raw data visibility for a specific item
+  const toggleRawData = (index: number) => {
+    setShowRawDataItems(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
   const getWeatherIcon = (description: string) => {
     if (description.includes('regn') || description.includes('Regn')) {
       return <CloudRain className="h-5 w-5 text-blue-500" />;
@@ -151,8 +161,8 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
               const tempDiff = Math.abs(weather.temperature - weather.feelsLike);
               const showFeelsLike = tempDiff >= 2; // Only show feels-like if it differs by 2°C or more
               
-              // State for showing/hiding raw data
-              const [showRawData, setShowRawData] = useState(false);
+              // Check if raw data is shown for this item
+              const showRawData = !!showRawDataItems[index];
               
               // Wind effect text
               const windEffectText = weather.windSpeed >= 4 && routeBearing
@@ -214,7 +224,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setShowRawData(!showRawData);
+                            toggleRawData(index);
                           }}
                           className="p-1 rounded hover:bg-gray-100"
                           title="Vis rådata for debugging"
