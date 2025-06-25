@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { RouteData } from '@/pages/WeatherRoute';
 import { Upload, Calendar, Clock, MapPin, LogOut } from 'lucide-react';
 import { StravaRoutes } from '@/components/StravaRoutes';
@@ -17,7 +18,7 @@ interface RouteFormProps {
 }
 
 export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => {
-  const { isAuthenticated, logout } = useStrava();
+  const { isAuthenticated, logout, athlete } = useStrava();
   const [gpxFile, setGpxFile] = useState<File | null>(null);
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('08:00');
@@ -114,17 +115,6 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
           
           <TabsContent value="strava" className="space-y-4">
             <div className="space-y-4">
-              <div className="p-3 bg-blue-50 rounded-md mb-4">
-                <h3 className="font-medium text-blue-800 flex items-center">
-                  <StravaIcon className="h-4 w-4 text-orange-500 mr-2" />
-                  Strava-integrasjon
-                </h3>
-                <p className="text-sm text-blue-700 mt-1">
-                  Koble til Strava-kontoen din for å importere dine ruter direkte.
-                  Ingen manuell nedlasting av GPX-filer nødvendig!
-                </p>
-              </div>
-              
               {/* Show only StravaAuth when not authenticated */}
               {!isAuthenticated && <StravaAuth />}
               
@@ -136,10 +126,15 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
                     <CardContent className="py-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <StravaIcon className="h-5 w-5 text-orange-500" />
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={athlete?.profile} alt={athlete?.firstname} />
+                            <AvatarFallback className="bg-orange-100 text-orange-800">
+                              {athlete?.firstname?.charAt(0)}{athlete?.lastname?.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
                           <div>
-                            <p className="font-medium">Strava-konto tilkoblet</p>
-                            <p className="text-xs text-gray-500">Dine ruter er tilgjengelige for import</p>
+                            <p className="font-medium">{athlete?.firstname} {athlete?.lastname}</p>
+                            <p className="text-xs text-gray-500">Strava-konto tilkoblet</p>
                           </div>
                         </div>
                         <Button
