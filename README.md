@@ -163,22 +163,22 @@ If you encounter issues with the Strava integration on GitHub Pages:
    - Look for the "Debug info" section in the Strava connection card
    - This will show if the environment variables are being properly passed to the client
 
-5. **Manually Trigger a New Deployment**:
+6. **Manually Trigger a New Deployment**:
    - After adding or updating secrets, manually trigger a new deployment
    - Go to Actions → Deploy to GitHub Pages → Run workflow
    - This ensures the latest secrets are used in the build
 
-6. **Test Locally First**:
+7. **Test Locally First**:
    - Test the Strava integration locally with a `.env.local` file before deploying
    - This helps isolate whether the issue is with the code or the deployment configuration
 
-7. **MIME Type Issues**:
+8. **MIME Type Issues**:
    - If you see errors like "Failed to load module script: Expected a JavaScript module script but the server responded with a MIME type of 'application/octet-stream'", this is related to how GitHub Pages serves JavaScript files
    - The project includes a `.nojekyll` file to prevent GitHub Pages from processing files with Jekyll, which can cause MIME type issues
    - The GitHub Actions workflow is configured to include this file in the deployment
    - If you're still experiencing issues, try manually adding a `.nojekyll` file to your GitHub Pages branch
 
-6. **Using Strava Integration**:
+### Using Strava Integration
    - Users can connect their Strava account via the "Strava-ruter" tab in the route form
    - After authentication, they can browse and select their saved Strava routes
    - Selected routes are automatically converted to GPX format for weather forecasting
@@ -218,6 +218,7 @@ Due to Strava API restrictions, there are some limitations to the integration:
 - `npm run build` - Build the application for production
 - `npm run preview` - Preview the production build locally
 - `npm run deploy` - Deploy the application to GitHub Pages
+- `npm run check-env` - Verify that environment variables are properly set
 
 ### Project Structure
 
