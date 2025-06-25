@@ -92,12 +92,16 @@ export const StravaAuth: React.FC = () => {
             <p className="text-center mb-4">
               Koble til Strava-kontoen din for å importere dine lagrede ruter direkte.
             </p>
-            <Button 
+            <button
               onClick={login}
-              className="bg-orange-500 hover:bg-orange-600 flex items-center gap-2"
+              className="bg-transparent border-none p-0 cursor-pointer hover:opacity-90 transition-opacity"
             >
-              Koble til Strava
-            </Button>
+              <img
+                src={`${import.meta.env.BASE_URL || '/'}btn_strava_connect_with_orange.png`}
+                alt="Connect with Strava"
+                className="h-10"
+              />
+            </button>
           </div>
         </CardContent>
         <CardFooter className="flex justify-center border-t pt-4">
