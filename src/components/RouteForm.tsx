@@ -88,7 +88,6 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
             <TabsTrigger value="strava" className="flex items-center gap-2">
               <StravaIcon className="h-4 w-4 text-orange-500" />
               Strava-ruter
-              <span className="ml-1 text-xs bg-green-100 text-green-800 px-1.5 py-0.5 rounded-full">Ny</span>
             </TabsTrigger>
           </TabsList>
           
