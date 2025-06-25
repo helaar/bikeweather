@@ -3,8 +3,9 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Wind } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { StravaIcon } from '@/components/icons/StravaIcon';
+import { YrLogo } from '@/components/icons/YrLogo';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -54,8 +55,8 @@ const Index = () => {
 
           <Card>
             <CardHeader className="pb-3">
-              <Wind className="h-8 w-8 text-green-500 mx-auto" />
-              <CardTitle className="text-lg">Yr værtjeneste</CardTitle>
+              <YrLogo className="h-8 w-8 mx-auto" size={32} />
+              <CardTitle className="text-lg">Yr.no</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600">
