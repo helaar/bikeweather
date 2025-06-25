@@ -13,9 +13,13 @@ const Index = () => {
       <div className="max-w-2xl mx-auto text-center space-y-8">
         <div className="space-y-4">
           <div className="flex justify-center">
-            <div className="p-4 bg-blue-500 rounded-full">
-              {/* Partly cloudy emoji icon */}
-              <span className="text-5xl" role="img" aria-label="Partly cloudy">⛅</span>
+            <div className="flex items-center justify-center">
+              {/* BikeWeather logo */}
+              <img
+                src={`${import.meta.env.BASE_URL || '/'}bikeweather.png`}
+                alt="BikeWeather"
+                className="h-24 w-24 object-contain"
+              />
             </div>
           </div>
           <h1 className="text-5xl font-bold text-gray-800">
