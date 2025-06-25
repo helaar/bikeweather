@@ -40,6 +40,9 @@ jobs:
           echo "Checking if secrets are available (values will be masked):"
           echo "VITE_STRAVA_CLIENT_ID: ${{ secrets.VITE_STRAVA_CLIENT_ID != '' && 'is set' || 'is NOT set' }}"
           echo "VITE_STRAVA_CLIENT_SECRET: ${{ secrets.VITE_STRAVA_CLIENT_SECRET != '' && 'is set' || 'is NOT set' }}"
+          echo "Testing if any secret can be accessed: ${{ secrets.GITHUB_TOKEN != '' && 'YES - secrets can be accessed' || 'NO - cannot access any secrets' }}"
+          echo "Secret names available in this repository:"
+          echo "${{ toJSON(secrets) }}" | grep -o '"[^"]*"' | sort
       - name: Check Environment Variables
         run: node scripts/check-env.js
         env:

@@ -3,7 +3,13 @@
 
 console.log('=== Environment Variables Check ===');
 console.log('VITE_STRAVA_CLIENT_ID:', process.env.VITE_STRAVA_CLIENT_ID ? 'Set (value hidden)' : 'Not set');
+console.log('VITE_STRAVA_CLIENT_ID type:', typeof process.env.VITE_STRAVA_CLIENT_ID);
+console.log('VITE_STRAVA_CLIENT_ID length:', process.env.VITE_STRAVA_CLIENT_ID ? process.env.VITE_STRAVA_CLIENT_ID.length : 0);
+
 console.log('VITE_STRAVA_CLIENT_SECRET:', process.env.VITE_STRAVA_CLIENT_SECRET ? 'Set (value hidden)' : 'Not set');
+console.log('VITE_STRAVA_CLIENT_SECRET type:', typeof process.env.VITE_STRAVA_CLIENT_SECRET);
+console.log('VITE_STRAVA_CLIENT_SECRET length:', process.env.VITE_STRAVA_CLIENT_SECRET ? process.env.VITE_STRAVA_CLIENT_SECRET.length : 0);
+
 console.log('NODE_ENV:', process.env.NODE_ENV || 'Not set');
 console.log('GITHUB_ACTIONS:', process.env.GITHUB_ACTIONS || 'Not set');
 console.log('================================');
