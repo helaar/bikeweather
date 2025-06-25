@@ -17,7 +17,11 @@ const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token';
 // NEVER hardcode these values directly in your code
 const STRAVA_CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID || '';
 const STRAVA_CLIENT_SECRET = import.meta.env.VITE_STRAVA_CLIENT_SECRET || '';
-const REDIRECT_URI = window.location.origin + '/bikeweather/strava-callback';
+// Use the correct path for the callback URL
+const REDIRECT_URI = window.location.origin + import.meta.env.BASE_URL + 'strava-callback';
+
+// Log the redirect URI for debugging
+console.log('Strava Redirect URI:', REDIRECT_URI);
 
 // Log environment information for debugging
 console.log('Strava API Client Initialization:');
@@ -25,7 +29,11 @@ console.log('- Environment Mode:', import.meta.env.MODE);
 console.log('- Is GitHub Pages:', import.meta.env.IS_GITHUB_PAGES);
 console.log('- Build Time:', import.meta.env.BUILD_TIME);
 console.log('- Client ID exists:', Boolean(STRAVA_CLIENT_ID));
+console.log('- Client ID type:', typeof STRAVA_CLIENT_ID);
+console.log('- Client ID length:', STRAVA_CLIENT_ID.length);
 console.log('- Client Secret exists:', Boolean(STRAVA_CLIENT_SECRET));
+console.log('- Client Secret type:', typeof STRAVA_CLIENT_SECRET);
+console.log('- Client Secret length:', STRAVA_CLIENT_SECRET.length);
 console.log('- Redirect URI:', REDIRECT_URI);
 
 // If you're testing locally, your redirect URI might look like:

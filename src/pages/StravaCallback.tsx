@@ -12,12 +12,22 @@ const StravaCallback: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('StravaCallback component mounted');
+    console.log('Current URL:', window.location.href);
+    console.log('Search params:', location.search);
+    console.log('Path:', location.pathname);
+    console.log('Origin:', window.location.origin);
+    console.log('Base path:', import.meta.env.BASE_URL);
+    
     const processAuth = async () => {
       try {
         // Get the authorization code from URL query parameters
         const params = new URLSearchParams(location.search);
         const code = params.get('code');
         const error = params.get('error');
+        
+        console.log('Authorization code:', code ? 'Present (value hidden)' : 'Not present');
+        console.log('Error parameter:', error);
 
         if (error) {
           console.error('Strava authorization error:', error);
