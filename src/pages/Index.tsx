@@ -3,7 +3,8 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { Route, Calendar, Wind } from 'lucide-react';
+import { Calendar, Wind } from 'lucide-react';
+import { StravaIcon } from '@/components/icons/StravaIcon';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -33,13 +34,21 @@ const Index = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12">
           <Card>
             <CardHeader className="pb-3">
-              <Route className="h-8 w-8 text-blue-500 mx-auto" />
-              <CardTitle className="text-lg">Strava integrasjon</CardTitle>
+              <StravaIcon className="h-8 w-8 mx-auto" size={32} />
+              <CardTitle className="text-lg">Strava</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600">
-                Legg inn din Strava-rute og få værdata langs hele turen
+                Få værmeldinger for strava-rutene dine
               </p>
+              <div className="mt-3 flex justify-center">
+                <img
+                  src={`${import.meta.env.BASE_URL || '/'}api_logo_pwrdBy_strava_stack_orange.png`}
+                  alt="Powered by Strava"
+                  className="h-7.5"
+                  style={{ height: "1.875rem" }}
+                />
+              </div>
             </CardContent>
           </Card>
 
