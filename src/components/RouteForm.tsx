@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RouteData } from '@/pages/WeatherRoute';
-import { Upload, Calendar, Clock, MapPin } from 'lucide-react';
+import { Upload, Calendar, Clock, MapPin, LogOut } from 'lucide-react';
 import { StravaRoutes } from '@/components/StravaRoutes';
 import { StravaAuth } from '@/components/StravaAuth';
 import { StravaIcon } from '@/components/icons/StravaIcon';
@@ -17,7 +17,7 @@ interface RouteFormProps {
 }
 
 export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => {
-  const { isAuthenticated } = useStrava();
+  const { isAuthenticated, logout } = useStrava();
   const [gpxFile, setGpxFile] = useState<File | null>(null);
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('08:00');
@@ -128,8 +128,37 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
               {/* Show only StravaAuth when not authenticated */}
               {!isAuthenticated && <StravaAuth />}
               
-              {/* Show only StravaRoutes when authenticated */}
-              {isAuthenticated && <StravaRoutes onRouteSelect={handleStravaRouteSelect} />}
+              {/* When authenticated, show both profile with disconnect button and routes */}
+              {isAuthenticated && (
+                <>
+                  {/* Brief profile with disconnect button */}
+                  <Card className="mb-4">
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <StravaIcon className="h-5 w-5 text-orange-500" />
+                          <div>
+                            <p className="font-medium">Strava-konto tilkoblet</p>
+                            <p className="text-xs text-gray-500">Dine ruter er tilgjengelige for import</p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={logout}
+                          className="text-red-500 hover:text-red-600"
+                        >
+                          <LogOut className="h-4 w-4 mr-2" />
+                          Koble fra
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Strava routes component */}
+                  <StravaRoutes onRouteSelect={handleStravaRouteSelect} />
+                </>
+              )}
             </div>
           </TabsContent>
           
