@@ -10,6 +10,7 @@ import {
 import { decodePolyline, createGpxFromCoordinates } from '@/lib/polyline';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
 import { MapPin, Calendar, ArrowRight, RefreshCw } from 'lucide-react';
@@ -23,6 +24,8 @@ export const StravaRoutes: React.FC<StravaRoutesProps> = ({ onRouteSelect }) => 
   const { isAuthenticated, getValidAccessToken, login } = useStrava();
   const { toast } = useToast();
   const [routes, setRoutes] = useState<StravaRoute[]>([]);
+  const [filteredRoutes, setFilteredRoutes] = useState<StravaRoute[]>([]);
+  const [nameFilter, setNameFilter] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
   const [loadingGpx, setLoadingGpx] = useState(false);
@@ -41,6 +44,20 @@ export const StravaRoutes: React.FC<StravaRoutesProps> = ({ onRouteSelect }) => 
       fetchRoutes();
     }
   }, [isAuthenticated]);
+  
+  // Filter routes when nameFilter changes
+  useEffect(() => {
+    if (routes.length > 0) {
+      if (nameFilter.trim() === '') {
+        setFilteredRoutes(routes);
+      } else {
+        const filtered = routes.filter(route =>
+          route.name.toLowerCase().includes(nameFilter.toLowerCase())
+        );
+        setFilteredRoutes(filtered);
+      }
+    }
+  }, [nameFilter, routes]);
 
   // Fetch routes from Strava
   const fetchRoutes = async () => {
@@ -52,7 +69,14 @@ export const StravaRoutes: React.FC<StravaRoutesProps> = ({ onRouteSelect }) => 
       }
       
       const routesData = await getStravaRoutes(token);
-      setRoutes(routesData);
+      
+      // Sort routes alphabetically by name
+      const sortedRoutes = [...routesData].sort((a, b) =>
+        a.name.localeCompare(b.name, 'no', { sensitivity: 'base' })
+      );
+      
+      setRoutes(sortedRoutes);
+      setFilteredRoutes(sortedRoutes);
     } catch (error) {
       console.error('Error fetching Strava routes:', error);
       toast({
@@ -237,10 +261,10 @@ const handleRouteSelect = async (route: StravaRoute) => {
             <StravaIcon className="h-5 w-5 text-orange-500" />
             Dine Strava-ruter
           </CardTitle>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={fetchRoutes} 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchRoutes}
             disabled={loading}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
@@ -250,6 +274,16 @@ const handleRouteSelect = async (route: StravaRoute) => {
         <CardDescription>
           Velg en av dine lagrede ruter fra Strava
         </CardDescription>
+        
+        {/* Filter input */}
+        <div className="mt-3">
+          <Input
+            placeholder="Filtrer ruter etter navn..."
+            value={nameFilter}
+            onChange={(e) => setNameFilter(e.target.value)}
+            className="w-full"
+          />
+        </div>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -271,7 +305,8 @@ const handleRouteSelect = async (route: StravaRoute) => {
           </div>
         ) : (
           <div className="space-y-4">
-            {routes.map((route) => (
+            {/* Apply filter to routes */}
+            {filteredRoutes.map((route) => (
               <div
                 key={route.id}
                 className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
