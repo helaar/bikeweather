@@ -9,6 +9,7 @@ import { Upload, Calendar, Clock, MapPin } from 'lucide-react';
 import { StravaRoutes } from '@/components/StravaRoutes';
 import { StravaAuth } from '@/components/StravaAuth';
 import { StravaIcon } from '@/components/icons/StravaIcon';
+import { useStrava } from '@/hooks/use-strava';
 
 interface RouteFormProps {
   onSubmit: (data: RouteData) => void;
@@ -16,6 +17,7 @@ interface RouteFormProps {
 }
 
 export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => {
+  const { isAuthenticated } = useStrava();
   const [gpxFile, setGpxFile] = useState<File | null>(null);
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('08:00');
@@ -122,8 +124,12 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
                   Ingen manuell nedlasting av GPX-filer nødvendig!
                 </p>
               </div>
-              <StravaAuth />
-              <StravaRoutes onRouteSelect={handleStravaRouteSelect} />
+              
+              {/* Show only StravaAuth when not authenticated */}
+              {!isAuthenticated && <StravaAuth />}
+              
+              {/* Show only StravaRoutes when authenticated */}
+              {isAuthenticated && <StravaRoutes onRouteSelect={handleStravaRouteSelect} />}
             </div>
           </TabsContent>
           
