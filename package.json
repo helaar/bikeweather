@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist --repo https://${GH_TOKEN}@github.com/helaar/bikeweather.git"
+    "deploy": "gh-pages -d dist --repo https://${GH_TOKEN}@github.com/helaar/bikeweather.git",
+    "check-env": "node scripts/check-env.js",
+    "prebuild": "npm run check-env"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

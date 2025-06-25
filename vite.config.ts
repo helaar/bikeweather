@@ -7,9 +7,12 @@ export default defineConfig(({ mode }) => {
   // Determine if this is a GitHub Pages build
   const isGitHubPages = process.env.GITHUB_ACTIONS === 'true';
   
-  // Log the build environment
+  // Log the build environment and variables
   console.log('Build mode:', mode);
+  console.log('NODE_ENV:', process.env.NODE_ENV);
   console.log('Is GitHub Pages:', isGitHubPages);
+  console.log('VITE_STRAVA_CLIENT_ID exists:', !!process.env.VITE_STRAVA_CLIENT_ID);
+  console.log('VITE_STRAVA_CLIENT_SECRET exists:', !!process.env.VITE_STRAVA_CLIENT_SECRET);
   
   return {
     base: '/bikeweather/', // Add base path for GitHub Pages
@@ -42,8 +45,11 @@ export default defineConfig(({ mode }) => {
     define: {
       'import.meta.env.MODE': JSON.stringify(isGitHubPages ? 'github-pages' : mode),
       // Expose Strava API credentials from environment variables
-      'import.meta.env.VITE_STRAVA_CLIENT_ID': JSON.stringify(process.env.VITE_STRAVA_CLIENT_ID),
-      'import.meta.env.VITE_STRAVA_CLIENT_SECRET': JSON.stringify(process.env.VITE_STRAVA_CLIENT_SECRET),
+      'import.meta.env.VITE_STRAVA_CLIENT_ID': JSON.stringify(process.env.VITE_STRAVA_CLIENT_ID || ''),
+      'import.meta.env.VITE_STRAVA_CLIENT_SECRET': JSON.stringify(process.env.VITE_STRAVA_CLIENT_SECRET || ''),
+      // Add additional environment information for debugging
+      'import.meta.env.IS_GITHUB_PAGES': JSON.stringify(isGitHubPages),
+      'import.meta.env.BUILD_TIME': JSON.stringify(new Date().toISOString()),
     },
     // Configure build options
     build: {

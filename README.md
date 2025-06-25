@@ -94,6 +94,27 @@ To enable Strava integration, you need to:
      - Click "New repository secret"
      - Add `VITE_STRAVA_CLIENT_ID` with your Strava Client ID as the value
      - Add `VITE_STRAVA_CLIENT_SECRET` with your Strava Client Secret as the value
+     
+   - **Step-by-Step Instructions**:
+     1. Go to [Strava API Settings](https://www.strava.com/settings/api) and create an API application
+     2. Copy your Client ID and Client Secret
+     3. Go to your GitHub repository
+     4. Click on "Settings" tab (near the top of the page)
+     5. In the left sidebar, click on "Secrets and variables" and then "Actions"
+     6. Click the "New repository secret" button
+     7. For the first secret:
+        - Name: `VITE_STRAVA_CLIENT_ID` (must be exactly this, case-sensitive)
+        - Value: Your Strava Client ID (numbers only, no spaces)
+        - Click "Add secret"
+     8. Click "New repository secret" again
+     9. For the second secret:
+        - Name: `VITE_STRAVA_CLIENT_SECRET` (must be exactly this, case-sensitive)
+        - Value: Your Strava Client Secret (alphanumeric string, no spaces)
+        - Click "Add secret"
+     10. Go to the "Actions" tab in your repository
+     11. Find the "Deploy to GitHub Pages" workflow
+     12. Click "Run workflow" to trigger a new deployment with the secrets
+   
    - The GitHub Actions workflow is already configured to use these secrets:
      ```yaml
      # In .github/workflows/deploy.yml
@@ -102,6 +123,7 @@ To enable Strava integration, you need to:
        VITE_STRAVA_CLIENT_SECRET: ${{ secrets.VITE_STRAVA_CLIENT_SECRET }}
        GITHUB_ACTIONS: 'true'
      ```
+   
    - If you see the error "Strava API credentials not found in environment variables" after deployment:
      - This means the secrets are not properly set in your GitHub repository
      - Double-check that you've added both secrets with the correct names and values
@@ -115,20 +137,42 @@ If you encounter issues with the Strava integration on GitHub Pages:
 1. **Check Repository Secrets**:
    - Ensure both `VITE_STRAVA_CLIENT_ID` and `VITE_STRAVA_CLIENT_SECRET` are set as repository secrets
    - Repository secrets are case-sensitive and should match exactly as shown
+   - Secrets should not have any extra spaces or quotes around them
+   - The Client ID should be numbers only
+   - The Client Secret should be an alphanumeric string
 
 2. **Verify Workflow Permissions**:
    - Make sure the GitHub Actions workflow has permission to access the secrets
-   - This is usually configured automatically, but can be checked in repository settings
+   - Go to Settings → Actions → General → Workflow permissions
+   - Ensure "Read and write permissions" is selected
 
 3. **Check Build Logs**:
    - Review the GitHub Actions build logs for any errors
-   - Look for messages about missing environment variables
+   - Look for the "Debug Secrets" step which will show if secrets are available
+   - Check for messages about missing environment variables
+   - Look for the line "Checking if secrets are available" in the logs
 
-4. **Test Locally First**:
+4. **Run the Environment Check Script**:
+   - The project includes a script to verify that environment variables are properly set
+   - Run `npm run check-env` to check if the variables are available
+   - This script is also run automatically before the build process
+   - In GitHub Actions, this will appear in the "Check Environment Variables" step
+
+5. **Debug Information in the UI**:
+   - The application now includes debug information in the UI when credentials are missing
+   - Look for the "Debug info" section in the Strava connection card
+   - This will show if the environment variables are being properly passed to the client
+
+5. **Manually Trigger a New Deployment**:
+   - After adding or updating secrets, manually trigger a new deployment
+   - Go to Actions → Deploy to GitHub Pages → Run workflow
+   - This ensures the latest secrets are used in the build
+
+6. **Test Locally First**:
    - Test the Strava integration locally with a `.env.local` file before deploying
    - This helps isolate whether the issue is with the code or the deployment configuration
 
-5. **MIME Type Issues**:
+7. **MIME Type Issues**:
    - If you see errors like "Failed to load module script: Expected a JavaScript module script but the server responded with a MIME type of 'application/octet-stream'", this is related to how GitHub Pages serves JavaScript files
    - The project includes a `.nojekyll` file to prevent GitHub Pages from processing files with Jekyll, which can cause MIME type issues
    - The GitHub Actions workflow is configured to include this file in the deployment

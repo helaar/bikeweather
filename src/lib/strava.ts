@@ -19,15 +19,28 @@ const STRAVA_CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID || '';
 const STRAVA_CLIENT_SECRET = import.meta.env.VITE_STRAVA_CLIENT_SECRET || '';
 const REDIRECT_URI = window.location.origin + '/bikeweather/strava-callback';
 
+// Log environment information for debugging
+console.log('Strava API Client Initialization:');
+console.log('- Environment Mode:', import.meta.env.MODE);
+console.log('- Is GitHub Pages:', import.meta.env.IS_GITHUB_PAGES);
+console.log('- Build Time:', import.meta.env.BUILD_TIME);
+console.log('- Client ID exists:', Boolean(STRAVA_CLIENT_ID));
+console.log('- Client Secret exists:', Boolean(STRAVA_CLIENT_SECRET));
+console.log('- Redirect URI:', REDIRECT_URI);
+
 // If you're testing locally, your redirect URI might look like:
 // http://localhost:8080/bikeweather/strava-callback
 
 // Validate that environment variables are set
-if (!STRAVA_CLIENT_ID || !STRAVA_CLIENT_SECRET) {
+// Check for empty strings as well as undefined
+if (!STRAVA_CLIENT_ID || !STRAVA_CLIENT_SECRET ||
+    STRAVA_CLIENT_ID === '' || STRAVA_CLIENT_SECRET === '') {
+  
   // Check if we're in a GitHub Pages environment or any production build
   const isProduction = import.meta.env.PROD ||
                        import.meta.env.MODE === 'production' ||
-                       import.meta.env.MODE === 'github-pages';
+                       import.meta.env.MODE === 'github-pages' ||
+                       import.meta.env.IS_GITHUB_PAGES === 'true';
   
   const message = isProduction
     ? 'Strava API credentials not found in environment variables. ' +
@@ -38,6 +51,14 @@ if (!STRAVA_CLIENT_ID || !STRAVA_CLIENT_SECRET) {
   
   console.warn(message);
   console.log('Current environment mode:', import.meta.env.MODE);
+  console.log('Environment details:', {
+    PROD: import.meta.env.PROD,
+    MODE: import.meta.env.MODE,
+    IS_GITHUB_PAGES: import.meta.env.IS_GITHUB_PAGES,
+    BUILD_TIME: import.meta.env.BUILD_TIME,
+    CLIENT_ID_EXISTS: Boolean(STRAVA_CLIENT_ID),
+    CLIENT_SECRET_EXISTS: Boolean(STRAVA_CLIENT_SECRET)
+  });
 }
 
 // Scopes needed for reading routes and activities

@@ -60,6 +60,13 @@ export const StravaAuth: React.FC = () => {
             <p className="text-xs text-amber-600 mt-1">
               Gjeldende miljø: {import.meta.env.MODE || 'development'}
             </p>
+            <div className="mt-3 p-2 bg-gray-100 rounded text-xs font-mono overflow-auto max-h-32">
+              <p>Debug info:</p>
+              <p>IS_GITHUB_PAGES: {String(import.meta.env.IS_GITHUB_PAGES)}</p>
+              <p>BUILD_TIME: {import.meta.env.BUILD_TIME}</p>
+              <p>VITE_STRAVA_CLIENT_ID exists: {Boolean(import.meta.env.VITE_STRAVA_CLIENT_ID) ? 'Yes' : 'No'}</p>
+              <p>VITE_STRAVA_CLIENT_SECRET exists: {Boolean(import.meta.env.VITE_STRAVA_CLIENT_SECRET) ? 'Yes' : 'No'}</p>
+            </div>
             <p className="text-sm text-amber-700 mt-2">
               Se README.md for instruksjoner om hvordan du setter opp Strava-integrasjonen.
             </p>
