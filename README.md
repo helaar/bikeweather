@@ -128,7 +128,13 @@ If you encounter issues with the Strava integration on GitHub Pages:
    - Test the Strava integration locally with a `.env.local` file before deploying
    - This helps isolate whether the issue is with the code or the deployment configuration
 
-4. **Using Strava Integration**:
+5. **MIME Type Issues**:
+   - If you see errors like "Failed to load module script: Expected a JavaScript module script but the server responded with a MIME type of 'application/octet-stream'", this is related to how GitHub Pages serves JavaScript files
+   - The project includes a `.nojekyll` file to prevent GitHub Pages from processing files with Jekyll, which can cause MIME type issues
+   - The GitHub Actions workflow is configured to include this file in the deployment
+   - If you're still experiencing issues, try manually adding a `.nojekyll` file to your GitHub Pages branch
+
+6. **Using Strava Integration**:
    - Users can connect their Strava account via the "Strava-ruter" tab in the route form
    - After authentication, they can browse and select their saved Strava routes
    - Selected routes are automatically converted to GPX format for weather forecasting
