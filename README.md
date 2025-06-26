@@ -252,6 +252,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🙏 Acknowledgements
 
+- [Strava](https://www.strava.com/) for their excellent API that enables route integration and enhances the cycling experience
 - [Yr Weather API](https://api.met.no/) for providing reliable weather data
 - [OpenStreetMap](https://www.openstreetmap.org/) for mapping and geocoding services
 - [Leaflet](https://leafletjs.com/) for the interactive map implementation

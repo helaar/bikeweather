@@ -47,72 +47,76 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
       [index]: !prev[index]
     }));
   };
-  const getWeatherIcon = (description: string) => {
+  const getWeatherIcon = (description: string, isMobileView = false) => {
     // Convert to lowercase for case-insensitive comparison
     const lowerDesc = description.toLowerCase();
     
+    // Set icon size based on view
+    const iconSize = isMobileView ? "h-6.5 w-6.5" : "h-5 w-5";
+    const smallIconSize = isMobileView ? "h-4 w-4" : "h-3 w-3";
+    
     // Thunderstorm conditions
     if (lowerDesc.includes('torden')) {
-      return <CloudLightning className="h-5 w-5 text-purple-500" />;
+      return <CloudLightning className={`${iconSize} text-purple-500`} />;
     }
     
     // Heavy rain conditions
     if (lowerDesc.includes('kraftig regn') || lowerDesc.includes('heavyrain')) {
       return (
         <div className="relative">
-          <CloudRain className="h-5 w-5 text-blue-700" />
-          <AlertTriangle className="h-3 w-3 text-red-500 absolute -top-1 -right-1" />
+          <CloudRain className={`${iconSize} text-blue-700`} />
+          <AlertTriangle className={`${smallIconSize} text-red-500 absolute -top-1 -right-1`} />
         </div>
       );
     }
     
     // Regular rain conditions
     if (lowerDesc.includes('regn') || lowerDesc.includes('rain')) {
-      return <CloudRain className="h-5 w-5 text-blue-500" />;
+      return <CloudRain className={`${iconSize} text-blue-500`} />;
     }
     
     // Drizzle conditions
     if (lowerDesc.includes('lett regn') || lowerDesc.includes('lightrain') || lowerDesc.includes('drizzle')) {
-      return <CloudDrizzle className="h-5 w-5 text-blue-400" />;
+      return <CloudDrizzle className={`${iconSize} text-blue-400`} />;
     }
     
     // Snow conditions
     if (lowerDesc.includes('snø') || lowerDesc.includes('snow')) {
-      return <CloudSnow className="h-5 w-5 text-blue-200" />;
+      return <CloudSnow className={`${iconSize} text-blue-200`} />;
     }
     
     // Sleet conditions
     if (lowerDesc.includes('sludd') || lowerDesc.includes('sleet')) {
       return (
         <div className="relative">
-          <CloudRain className="h-5 w-5 text-blue-400" />
-          <CloudSnow className="h-3 w-3 text-blue-200 absolute -top-1 -right-1" />
+          <CloudRain className={`${iconSize} text-blue-400`} />
+          <CloudSnow className={`${smallIconSize} text-blue-200 absolute -top-1 -right-1`} />
         </div>
       );
     }
     
     // Fog conditions
     if (lowerDesc.includes('tåke') || lowerDesc.includes('fog')) {
-      return <CloudFog className="h-5 w-5 text-gray-400" />;
+      return <CloudFog className={`${iconSize} text-gray-400`} />;
     }
     
     // Cloudy conditions
     if (lowerDesc.includes('skyet') || lowerDesc.includes('cloudy')) {
-      return <Cloud className="h-5 w-5 text-gray-500" />;
+      return <Cloud className={`${iconSize} text-gray-500`} />;
     }
     
     // Partly cloudy conditions
     if (lowerDesc.includes('delvis skyet') || lowerDesc.includes('partlycloudy') || lowerDesc.includes('lettskyet') || lowerDesc.includes('fair')) {
       return (
         <div className="relative">
-          <Cloud className="h-5 w-5 text-gray-400" />
-          <Sun className="h-3 w-3 text-yellow-500 absolute -top-1 -right-1" />
+          <Cloud className={`${iconSize} text-gray-400`} />
+          <Sun className={`${smallIconSize} text-yellow-500 absolute -top-1 -right-1`} />
         </div>
       );
     }
     
     // Default: clear/sunny
-    return <Sun className="h-5 w-5 text-yellow-500" />;
+    return <Sun className={`${iconSize} text-yellow-500`} />;
   };
 
   const getTemperatureColor = (temp: number) => {
@@ -253,63 +257,68 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                 >
                   <AccordionTrigger className={`${isMobile ? "py-1.5 px-2" : "py-2 px-3"} hover:no-underline`}>
                     {isMobile ? (
-                      // Mobile layout - more compact and vertical
-                      <div className="flex flex-col w-full">
-                        {/* Top row - time, location, and icon */}
-                        <div className="flex items-center justify-between w-full mb-1.5">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{weather.time}</span>
-                            <span className="text-xs text-gray-600 truncate max-w-[120px]">{weather.location}</span>
-                          </div>
-                          <div className="flex items-center">
-                            {getWeatherIcon(weather.description)}
-                          </div>
+                      // Mobile layout - more compact with icon spanning both rows
+                      <div className="flex w-full">
+                        {/* Weather icon on the left spanning both rows */}
+                        <div className="flex items-center mr-3 self-center">
+                          {getWeatherIcon(weather.description, true)}
                         </div>
                         
-                        {/* Bottom row - temperature and wind */}
-                        <div className="flex items-center justify-between w-full">
-                          <div className="flex items-center gap-2">
-                            <span className={`font-semibold ${getTemperatureColor(weather.temperature)}`}>
-                              {weather.temperature}°C
-                            </span>
-                            {weather.precipitation > 0 && (
-                              <span className="text-blue-600 text-sm">{weather.precipitation}mm</span>
-                            )}
+                        {/* Content on the right */}
+                        <div className="flex flex-col flex-1">
+                          {/* Top row - time, location */}
+                          <div className="flex items-center w-full mb-1.5">
+                            <div className="flex items-center gap-2 flex-1">
+                              <span className="text-sm text-gray-700">{weather.time}</span>
+                              <span className="text-sm font-medium truncate max-w-[120px]">{weather.location}</span>
+                            </div>
                           </div>
                           
-                          <div className={`flex items-center gap-1.5 ${windColor}`}>
-                            <span className="font-medium">{windCompass}</span>
-                            <span>
-                              {weather.windSpeed} m/s
-                            </span>
-                            {windEffect !== 'crosswind' && weather.windSpeed >= 4 && (
-                              <span className="text-xs">
-                                {windEffect === 'headwind' ? '↓' : '↑'}
+                          {/* Bottom row - temperature and wind */}
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2">
+                              <span className={`font-semibold ${getTemperatureColor(weather.temperature)}`}>
+                                {weather.temperature}°C
                               </span>
-                            )}
+                              {weather.precipitation > 0 && (
+                                <span className="text-blue-600 text-sm">{weather.precipitation}mm</span>
+                              )}
+                            </div>
+                            
+                            <div className={`flex items-center gap-1.5 ${windColor}`}>
+                              <span className="text-sm">{windCompass}</span>
+                              <span className="text-sm">
+                                {weather.windSpeed}
+                                {showGust && <span> ({weather.windGust})</span>} m/s
+                              </span>
+                              {windEffect !== 'crosswind' && weather.windSpeed >= 4 && (
+                                <span className="text-sm">
+                                  {windEffect === 'headwind' ? '↓' : '↑'}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     ) : (
-                      // Desktop layout - original horizontal layout
-                      <div className="flex items-center justify-between w-full">
-                        {/* Left side - icon, time, location */}
-                        <div className="flex items-center gap-3">
-                          {getWeatherIcon(weather.description)}
-                          <div>
-                            <h4 className="font-medium">
-                              <span>{weather.time}</span>
-                              <span className="mx-1">·</span>
-                              <span>{weather.location}</span>
-                            </h4>
-                          </div>
+                      // Desktop layout - similar to mobile but with horizontal alignment
+                      <div className="flex w-full">
+                        {/* Weather icon on the left */}
+                        <div className="flex items-center mr-4 self-center">
+                          {getWeatherIcon(weather.description, true)}
+                        </div>
+                        
+                        {/* Content in the middle */}
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="text-gray-700">{weather.time}</span>
+                          <span className="font-medium">{weather.location}</span>
                         </div>
                         
                         {/* Right side - precipitation (if > 0), temperature, and wind */}
                         <div className="flex items-center gap-4">
                           {weather.precipitation > 0 && (
                             <div className="flex items-center gap-1">
-                              <Droplets className="h-3 w-3 text-blue-500" />
+                              <Droplets className="h-4 w-4 text-blue-500" />
                               <span className="text-blue-600">{weather.precipitation}mm</span>
                             </div>
                           )}
@@ -320,15 +329,17 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                             </span>
                           </div>
                           
-                          <div className={`flex items-center gap-1 ${windColor}`}>
+                          <div className={`flex items-center gap-1.5 ${windColor}`}>
                             <span>{windCompass}</span>
                             <span>
                               {weather.windSpeed}
                               {showGust && <span> ({weather.windGust})</span>} m/s
                             </span>
-                            <span className="text-xs ml-1">
-                              {windEffectText}
-                            </span>
+                            {windEffect !== 'crosswind' && weather.windSpeed >= 4 && (
+                              <span className="ml-1">
+                                {windEffect === 'headwind' ? '↓' : '↑'}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -407,43 +418,40 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                           </div>
                         </div>
                       ) : (
-                        // Desktop layout - grid
-                        <div className="grid grid-cols-3 gap-2 mt-1">
-                          <div className="flex items-center gap-1">
-                            <Thermometer className="h-3 w-3 text-gray-500" />
+                        // Desktop layout - similar to mobile but with more horizontal space
+                        <div className="space-y-3 mt-2 pb-1 grid grid-cols-2 gap-x-8 gap-y-3">
+                          <div className="flex items-center gap-2">
+                            <Thermometer className="h-4 w-4 text-gray-500" />
                             <div>
                               <span className={`font-semibold ${getTemperatureColor(weather.temperature)}`}>
                                 {weather.temperature}°C
                               </span>
-                              <span className="text-xs text-gray-500 ml-1">
+                              <span className="text-gray-500 ml-1">
                                 (Føles som {weather.feelsLike}°C)
                               </span>
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-1">
-                            <Droplets className="h-3 w-3 text-blue-500" />
+                          <div className="flex items-center gap-2">
+                            <Droplets className="h-4 w-4 text-blue-500" />
                             <div>
                               <span className="text-blue-600">{weather.precipitation}mm</span>
-                              {weather.precipitation > 0 && (
-                                <span className="text-xs text-blue-500 ml-1">
-                                  (min/max: {Math.max(0, weather.precipitation - 0.5).toFixed(1)}-{(weather.precipitation + 0.5).toFixed(1)}mm)
-                                </span>
-                              )}
-                              <span className="text-xs text-gray-500 ml-1">Luftfuktighet: {weather.humidity}%</span>
+                              <span className="text-gray-500 ml-1">
+                                Fuktighet: {weather.humidity}%
+                              </span>
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-1">
-                            <Cloud className="h-3 w-3 text-gray-500" />
+                          <div className="flex items-center gap-2">
+                            <Cloud className="h-4 w-4 text-gray-500" />
                             <span className="text-gray-600">{weather.cloudCover}%</span>
                             {weather.uvIndex && weather.uvIndex > 2 && (
-                              <span className="text-xs text-orange-500 ml-1">UV: {Math.round(weather.uvIndex)}</span>
+                              <span className="text-orange-500 ml-2">UV: {Math.round(weather.uvIndex)}</span>
                             )}
                           </div>
                           
-                          <div className="flex items-center gap-1 col-span-3">
-                            <Wind className="h-3 w-3 text-gray-500" />
+                          <div className="flex items-center gap-2">
+                            <Wind className="h-4 w-4 text-gray-500" />
                             <div className={`flex items-center gap-1 ${windColor}`}>
                               <span>{windCompass}</span>
                               <span>
@@ -454,7 +462,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                                   </span>
                                 )}
                               </span>
-                              <span className="text-xs ml-1">
+                              <span className="ml-1">
                                 {windEffectText}
                               </span>
                             </div>
