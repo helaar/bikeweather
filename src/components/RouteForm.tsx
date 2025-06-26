@@ -50,14 +50,59 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.name.toLowerCase().endsWith('.gpx')) {
       setGpxFile(file);
       setRouteName(file.name.replace('.gpx', ''));
+      
+      // Calculate route length from GPX file
+      try {
+        const gpxText = await file.text();
+        const parser = new DOMParser();
+        const gpxDoc = parser.parseFromString(gpxText, 'application/xml');
+        
+        // Extract track points from GPX
+        const trackPoints = Array.from(gpxDoc.querySelectorAll('trkpt')).map(point => ({
+          lat: parseFloat(point.getAttribute('lat') || '0'),
+          lon: parseFloat(point.getAttribute('lon') || '0')
+        }));
+        
+        if (trackPoints.length > 0) {
+          // Calculate route length using Haversine formula
+          let totalDistance = 0;
+          for (let i = 0; i < trackPoints.length - 1; i++) {
+            totalDistance += calculateDistance(
+              trackPoints[i].lat, trackPoints[i].lon,
+              trackPoints[i+1].lat, trackPoints[i+1].lon
+            );
+          }
+          
+          // Convert to meters for consistency with Strava routes
+          setRouteDistance(totalDistance * 1000);
+        } else {
+          setRouteDistance(null);
+        }
+      } catch (error) {
+        console.error('Error calculating route length:', error);
+        setRouteDistance(null);
+      }
     } else {
       alert('Vennligst velg en gyldig GPX-fil');
     }
+  };
+  
+  // Calculate distance between two points using Haversine formula (in kilometers)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in km
   };
 
   // Handle route selection from Strava
