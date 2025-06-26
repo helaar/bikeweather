@@ -70,6 +70,9 @@ export const StravaRoutes: React.FC<StravaRoutesProps> = ({ onRouteSelect }) => 
       
       const routesData = await getStravaRoutes(token);
       
+      // Debug: Log route data to inspect properties
+      console.log('First route data:', routesData[0]);
+      
       // Sort routes alphabetically by name
       const sortedRoutes = [...routesData].sort((a, b) =>
         a.name.localeCompare(b.name, 'no', { sensitivity: 'base' })
