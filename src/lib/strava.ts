@@ -257,6 +257,7 @@ export interface StravaAthlete {
 
 export interface StravaRoute {
   id: number;
+  id_str: string;  // String representation of the ID (not rounded)
   name: string;
   description: string;
   distance: number;
