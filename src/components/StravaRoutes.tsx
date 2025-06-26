@@ -322,6 +322,15 @@ const handleRouteSelect = async (route: StravaRoute) => {
                     <Calendar className="h-4 w-4 mr-1" />
                     {formatDate(route.created_at)}
                   </div>
+                  <a
+                    href={`https://strava.com/routes/${route.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-orange-500 hover:text-orange-600 flex items-center"
+                  >
+                    <StravaIcon className="h-4 w-4 mr-1" />
+                    Åpne i Strava
+                  </a>
                 </div>
                 <Button
                   className="w-full mt-3"
