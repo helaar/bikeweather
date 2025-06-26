@@ -17,7 +17,7 @@ import { MapPin, Calendar, ArrowRight, RefreshCw } from 'lucide-react';
 import { StravaIcon } from '@/components/icons/StravaIcon';
 
 interface StravaRoutesProps {
-  onRouteSelect: (gpxString: string, routeName: string) => void;
+  onRouteSelect: (gpxString: string, routeName: string, routeDistance?: number) => void;
 }
 
 export const StravaRoutes: React.FC<StravaRoutesProps> = ({ onRouteSelect }) => {
@@ -107,7 +107,7 @@ const handleRouteSelect = async (route: StravaRoute) => {
         
         if (coordinates.length > 0) {
           const gpxString = createGpxFromCoordinates(coordinates, route.name);
-          onRouteSelect(gpxString, route.name);
+          onRouteSelect(gpxString, route.name, route.distance);
           
           toast({
             title: 'Rute valgt',
@@ -125,7 +125,7 @@ const handleRouteSelect = async (route: StravaRoute) => {
     try {
       console.log('Trying to get detailed route data');
       const gpxString = await getRouteGpx(token, route.id);
-      onRouteSelect(gpxString, route.name);
+      onRouteSelect(gpxString, route.name, route.distance);
       
       toast({
         title: 'Rute valgt',
@@ -147,7 +147,7 @@ const handleRouteSelect = async (route: StravaRoute) => {
         ];
         
         const gpxString = createGpxFromCoordinates(simpleCoordinates, route.name);
-        onRouteSelect(gpxString, route.name);
+        onRouteSelect(gpxString, route.name, route.distance);
         
         toast({
           title: 'Forenklet rute generert',

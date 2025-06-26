@@ -25,6 +25,7 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
   const [duration, setDuration] = useState(0);
   const [activeTab, setActiveTab] = useState('upload');
   const [routeName, setRouteName] = useState('');
+  const [routeDistance, setRouteDistance] = useState<number | null>(null);
 
   // Set default date to today if not already set
   useEffect(() => {
@@ -60,13 +61,14 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
   };
 
   // Handle route selection from Strava
-  const handleStravaRouteSelect = (gpxString: string, name: string) => {
+  const handleStravaRouteSelect = (gpxString: string, name: string, distance?: number) => {
     // Convert GPX string to File object
     const blob = new Blob([gpxString], { type: 'application/gpx+xml' });
     const file = new File([blob], `${name}.gpx`, { type: 'application/gpx+xml' });
     
     setGpxFile(file);
     setRouteName(name);
+    setRouteDistance(distance || null);
     setActiveTab('details');
   };
 
@@ -165,6 +167,11 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
                   {routeName && (
                     <div className="p-3 bg-blue-50 rounded-md">
                       <p className="font-medium">Valgt rute: {routeName}</p>
+                      {routeDistance && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          Rutelengde: {(routeDistance / 1000).toFixed(1)} km
+                        </p>
+                      )}
                     </div>
                   )}
                   
