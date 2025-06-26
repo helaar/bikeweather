@@ -1,8 +1,10 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Cloud, CloudRain, Sun } from 'lucide-react';
+import { MapPin, Maximize, Minimize } from 'lucide-react';
 import { WeatherPrediction } from '@/pages/WeatherRoute';
+import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface RouteMapProps {
   routeCoordinates: { lat: number; lon: number }[];
@@ -15,6 +17,21 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isMobile = useIsMobile();
+
+  // Toggle expanded/collapsed state
+  const toggleExpanded = () => {
+    setIsExpanded(prev => !prev);
+    
+    // We need to invalidate the map size after toggling to ensure proper rendering
+    setTimeout(() => {
+      if (mapInstanceRef.current) {
+        console.log("Invalidating map size after resize");
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 300);
+  };
 
   const getWeatherIcon = (description: string) => {
     // Convert to lowercase for case-insensitive comparison
@@ -76,6 +93,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   useEffect(() => {
     // Wait for both Leaflet to load and route data to be available
     if (!mapRef.current || !window.L || !leafletLoaded || routeCoordinates.length === 0) return;
+    
+    console.log("Map initialization or resize, expanded state:", isExpanded);
 
     console.log("Initializing map with route data");
 
@@ -239,7 +258,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         mapInstanceRef.current = null;
       }
     };
-  }, [routeCoordinates, weatherPoints, leafletLoaded]);
+  }, [routeCoordinates, weatherPoints, leafletLoaded, isExpanded]);
 
   // Add Leaflet CSS and JS
   useEffect(() => {
@@ -281,17 +300,43 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <MapPin className="h-5 w-5" />
           Turen på kartet
         </CardTitle>
+        {isMobile && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleExpanded}
+            aria-label={isExpanded ? "Collapse map" : "Expand map"}
+            className="ml-auto"
+          >
+            {isExpanded ? (
+              <>
+                <Minimize className="h-4 w-4 mr-2" />
+                Mindre kart
+              </>
+            ) : (
+              <>
+                <Maximize className="h-4 w-4 mr-2" />
+                Større kart
+              </>
+            )}
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         <div
           ref={mapRef}
-          className="w-full h-96 rounded-lg border"
-          style={{ minHeight: '400px' }}
+          className={`w-full rounded-lg border transition-all duration-300 ${
+            isMobile && isExpanded ? 'h-[70vh]' : 'h-96'
+          }`}
+          style={{
+            minHeight: isMobile && isExpanded ? '70vh' : '400px',
+            position: 'relative'
+          }}
           id="leaflet-map-container"
         />
       </CardContent>

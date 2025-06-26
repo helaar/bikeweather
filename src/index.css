@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Map resize transition */
+#leaflet-map-container {
+  transition: height 0.3s ease-in-out;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
 
 @layer base {
