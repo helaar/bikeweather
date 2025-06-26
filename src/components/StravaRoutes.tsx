@@ -345,9 +345,14 @@ const handleRouteSelect = async (route: StravaRoute) => {
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex justify-center border-t pt-4">
+      <CardFooter className="flex flex-col items-center border-t pt-4">
         <p className="text-xs text-gray-500">
           Ruter hentes fra din Strava-konto. Opprett eller endre ruter i Strava-appen.
+        </p>
+        <p className="text-xs text-gray-400 mt-1">
+          {filteredRoutes.length === routes.length
+            ? `Viser ${routes.length} ruter`
+            : `Viser ${filteredRoutes.length} av ${routes.length} ruter`}
         </p>
       </CardFooter>
     </Card>
