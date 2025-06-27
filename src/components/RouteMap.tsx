@@ -137,7 +137,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           
           // Set border color based on weather severity
           let borderColor = 'border-blue-500'; // Default border color
-          let bgColor = 'bg-white';
+          let bgColor = 'bg-white/70'; // Semi-transparent background
           
           // Severe weather conditions (thunder, heavy rain, strong wind)
           if (lowerDesc.includes('torden') ||
@@ -145,7 +145,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
               lowerDesc.includes('heavy') ||
               point.windSpeed >= 10) {
             borderColor = 'border-red-500';
-            bgColor = 'bg-red-50';
+            bgColor = 'bg-red-50/80';
           }
           // Moderate weather conditions (regular rain, snow)
           else if (lowerDesc.includes('regn') ||
@@ -154,22 +154,22 @@ export const RouteMap: React.FC<RouteMapProps> = ({
                    lowerDesc.includes('snow') ||
                    point.windSpeed >= 6) {
             borderColor = 'border-yellow-500';
-            bgColor = 'bg-yellow-50';
+            bgColor = 'bg-yellow-50/80';
           }
           
-          // Create marker with appropriate styling
+          // Create marker with appropriate styling (smaller and less dominant)
           const marker = window.L.marker([point.lat, point.lon], {
             icon: window.L.divIcon({
               html: `
-                <div class="${bgColor} rounded-full p-2 shadow-lg border-2 ${borderColor} text-center">
-                  <div class="text-lg">${getWeatherIcon(point.description)}</div>
+                <div class="${bgColor} rounded-full p-1 shadow-sm border ${borderColor} text-center">
+                  <div class="text-sm">${getWeatherIcon(point.description)}</div>
                   <div class="text-xs font-semibold">${point.temperature}°</div>
                   ${point.windSpeed >= 8 ? `<div class="text-xs text-red-600">${point.windSpeed} m/s</div>` : ''}
                 </div>
               `,
               className: 'weather-marker',
-              iconSize: [50, 50],
-              iconAnchor: [25, 25]
+              iconSize: [36, 36],
+              iconAnchor: [18, 18]
             })
           }).addTo(map);
 
