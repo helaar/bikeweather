@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { RouteData } from '@/pages/WeatherRoute';
-import { Upload, Calendar, Clock, MapPin, LogOut } from 'lucide-react';
+import { Upload, Calendar, Clock, MapPin, LogOut, AlertTriangle } from 'lucide-react';
 import { StravaRoutes } from '@/components/StravaRoutes';
 import { StravaAuth } from '@/components/StravaAuth';
 import { StravaIcon } from '@/components/icons/StravaIcon';
@@ -21,26 +21,70 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
   const { isAuthenticated, logout, athlete } = useStrava();
   const [gpxFile, setGpxFile] = useState<File | null>(null);
   const [startDate, setStartDate] = useState('');
-  const [startTime, setStartTime] = useState('08:00');
+  const [startTime, setStartTime] = useState('');
   const [duration, setDuration] = useState(0);
   const [activeTab, setActiveTab] = useState('upload');
   const [routeName, setRouteName] = useState('');
   const [routeDistance, setRouteDistance] = useState<number | null>(null);
+  const [dateTimeError, setDateTimeError] = useState<string | null>(null);
+  const [formTouched, setFormTouched] = useState(false);
 
-  // Set default date to today if not already set
+  // Set default date and time to the nearest future hour
   useEffect(() => {
-    if (!startDate) {
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
+    if (!startDate || !startTime) {
+      const now = new Date();
+      
+      // Set to the next hour (e.g., 14:00, 15:00)
+      now.setHours(now.getHours() + 1);
+      now.setMinutes(0);
+      now.setSeconds(0);
+      now.setMilliseconds(0);
+      
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = '00';
+      
       setStartDate(`${year}-${month}-${day}`);
+      setStartTime(`${hours}:${minutes}`);
     }
-  }, [startDate]);
+  }, [startDate, startTime]);
+
+  // Validate date and time whenever they change, but only after form is touched
+  useEffect(() => {
+    if (formTouched) {
+      validateDateTime();
+    }
+  }, [startDate, startTime, formTouched]);
+
+  // Function to validate if the selected date and time are in the future
+  const validateDateTime = () => {
+    if (!startDate || !startTime) return;
+    
+    const now = new Date();
+    const selectedDateTime = new Date(`${startDate}T${startTime}`);
+    
+    if (selectedDateTime < now) {
+      setDateTimeError('Det finnes ikke værvarsel for fortiden. Velg et tidspunkt i fremtiden.');
+    } else {
+      setDateTimeError(null);
+    }
+  };
+  
+  // Mark form as touched when user interacts with date or time inputs
+  const handleInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormTouched(true);
+    setter(e.target.value);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (gpxFile && startDate && startTime && duration > 0) {
+    
+    // Validate date and time before submitting
+    validateDateTime();
+    
+    if (gpxFile && startDate && startTime && duration > 0 && !dateTimeError) {
       onSubmit({
         gpxFile,
         startDate,
@@ -230,8 +274,9 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
                         id="startDate"
                         type="date"
                         value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
+                        onChange={handleInputChange(setStartDate)}
                         required
+                        className={dateTimeError && formTouched ? "border-red-300" : ""}
                       />
                     </div>
 
@@ -244,8 +289,9 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
                         id="startTime"
                         type="time"
                         value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
+                        onChange={handleInputChange(setStartTime)}
                         required
+                        className={dateTimeError && formTouched ? "border-red-300" : ""}
                       />
                     </div>
                   </div>
@@ -267,10 +313,17 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
                     />
                   </div>
 
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={isLoading || !gpxFile}
+                  {dateTimeError && formTouched && (
+                    <div className="flex items-center gap-2 p-2 text-red-600 bg-red-50 rounded-md">
+                      <AlertTriangle className="h-4 w-4" />
+                      <p className="text-sm">{dateTimeError}</p>
+                    </div>
+                  )}
+                  
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isLoading || !gpxFile || (formTouched && !!dateTimeError)}
                   >
                     {isLoading ? 'Henter værdata...' : 'Få værvarsel'}
                   </Button>
