@@ -297,7 +297,8 @@ const WeatherRoute = () => {
   const getWindDirection = (degrees: number): string => {
     const directions = ['N', 'NØ', 'Ø', 'SØ', 'S', 'SV', 'V', 'NV'];
     const index = Math.round(degrees / 45) % 8;
-    return directions[index];
+    // Include the original degrees value in the returned string
+    return `${directions[index]} (${Math.round(degrees)}°)`;
   };
   
   // Get precipitation amount with fallbacks to different time periods
