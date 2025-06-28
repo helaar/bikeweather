@@ -29,6 +29,8 @@ export interface WeatherPrediction {
   lat: number;
   lon: number;
   rawData: string; // Raw timeseries data as JSON string for debugging
+  forecastAvailable: boolean; // Flag indicating if forecast data is available for this time
+  timeDifferenceHours?: number; // Time difference between requested time and available forecast
 }
 
 const WeatherRoute = () => {
@@ -226,7 +228,12 @@ const WeatherRoute = () => {
         
         // Use the closest timeseries entry
         const currentWeather = timeseries[closestTimeseriesIndex];
-        console.log(`Using timeseries entry with time: ${currentWeather.time} (difference: ${Math.round(minTimeDifference / (60 * 1000))} minutes)`);
+        const timeDifferenceHours = minTimeDifference / (60 * 60 * 1000);
+        console.log(`Using timeseries entry with time: ${currentWeather.time} (difference: ${Math.round(timeDifferenceHours)} hours)`);
+        
+        // Check if the forecast is within a reasonable time range (12 hours)
+        // This prevents showing forecasts for dates too far in the future or past
+        const forecastAvailable = timeDifferenceHours <= 12;
         
         const details = currentWeather.data.instant.details;
         
@@ -261,7 +268,9 @@ const WeatherRoute = () => {
           description: getWeatherSymbolDescription(currentWeather.data),
           lat: point.lat,
           lon: point.lon,
-          rawData: rawTimeseriesData
+          rawData: rawTimeseriesData,
+          forecastAvailable: forecastAvailable,
+          timeDifferenceHours: Math.round(timeDifferenceHours)
         };
       });
       
