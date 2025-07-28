@@ -1,8 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { RouteForm } from '@/components/RouteForm';
 import { WeatherDisplay } from '@/components/WeatherDisplay';
 import { RouteMap } from '@/components/RouteMap';
-import { useState } from 'react';
 
 export interface RouteData {
   gpxFile: File;
@@ -33,6 +32,15 @@ export interface WeatherPrediction {
   timeDifferenceHours?: number; // Time difference between requested time and available forecast
 }
 
+// Interface for serializable route data (without File object)
+interface SerializableRouteData {
+  startDate: string;
+  startTime: string;
+  duration: number;
+  avgSpeed?: number;
+  fileName?: string; // Store filename instead of File object
+}
+
 const WeatherRoute = () => {
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherPrediction[] | null>(null);
@@ -40,6 +48,88 @@ const WeatherRoute = () => {
   const [routeLength, setRouteLength] = useState<number | null>(null);
   const [avgSpeed, setAvgSpeed] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Load saved state from localStorage on component mount
+  useEffect(() => {
+    try {
+      // Check if we have saved data
+      const savedWeatherData = localStorage.getItem('weatherData');
+      const savedRouteCoordinates = localStorage.getItem('routeCoordinates');
+      const savedRouteData = localStorage.getItem('routeData');
+      const savedRouteLength = localStorage.getItem('routeLength');
+      const savedAvgSpeed = localStorage.getItem('avgSpeed');
+
+      if (savedWeatherData && savedRouteCoordinates && savedRouteData) {
+        console.log('Restoring saved weather forecast data from localStorage');
+        
+        // Parse and set the saved data
+        setWeatherData(JSON.parse(savedWeatherData));
+        setRouteCoordinates(JSON.parse(savedRouteCoordinates));
+        
+        // For routeData, we need to handle it specially since we can't store File objects
+        const parsedRouteData = JSON.parse(savedRouteData) as SerializableRouteData;
+        
+        // Create a placeholder File object
+        // Note: We can't restore the actual file, but we can restore the other data
+        const placeholderFile = new File([""], parsedRouteData.fileName || "restored-route.gpx", {
+          type: "application/gpx+xml"
+        });
+        
+        setRouteData({
+          gpxFile: placeholderFile,
+          startDate: parsedRouteData.startDate,
+          startTime: parsedRouteData.startTime,
+          duration: parsedRouteData.duration,
+          avgSpeed: parsedRouteData.avgSpeed
+        });
+        
+        if (savedRouteLength) setRouteLength(JSON.parse(savedRouteLength));
+        if (savedAvgSpeed) setAvgSpeed(JSON.parse(savedAvgSpeed));
+      }
+    } catch (error) {
+      console.error('Error restoring data from localStorage:', error);
+      // If there's an error, we'll just start fresh
+      localStorage.removeItem('weatherData');
+      localStorage.removeItem('routeCoordinates');
+      localStorage.removeItem('routeData');
+      localStorage.removeItem('routeLength');
+      localStorage.removeItem('avgSpeed');
+    }
+  }, []);
+
+  // Save state to localStorage when it changes
+  useEffect(() => {
+    if (weatherData && routeCoordinates && routeData) {
+      try {
+        // Save weather data
+        localStorage.setItem('weatherData', JSON.stringify(weatherData));
+        localStorage.setItem('routeCoordinates', JSON.stringify(routeCoordinates));
+        
+        // For routeData, we need to create a serializable version without the File object
+        const serializableRouteData: SerializableRouteData = {
+          startDate: routeData.startDate,
+          startTime: routeData.startTime,
+          duration: routeData.duration,
+          avgSpeed: routeData.avgSpeed,
+          fileName: routeData.gpxFile.name
+        };
+        
+        localStorage.setItem('routeData', JSON.stringify(serializableRouteData));
+        
+        if (routeLength !== null) {
+          localStorage.setItem('routeLength', JSON.stringify(routeLength));
+        }
+        
+        if (avgSpeed !== null) {
+          localStorage.setItem('avgSpeed', JSON.stringify(avgSpeed));
+        }
+        
+        console.log('Saved weather forecast data to localStorage');
+      } catch (error) {
+        console.error('Error saving data to localStorage:', error);
+      }
+    }
+  }, [weatherData, routeCoordinates, routeData, routeLength, avgSpeed]);
 
   const getLocationName = async (lat: number, lon: number): Promise<string> => {
     try {
@@ -99,6 +189,13 @@ const WeatherRoute = () => {
   const handleRouteSubmit = async (data: RouteData) => {
     setIsLoading(true);
     setRouteData(data);
+    
+    // Clear previous data from localStorage when a new route is submitted
+    localStorage.removeItem('weatherData');
+    localStorage.removeItem('routeCoordinates');
+    localStorage.removeItem('routeData');
+    localStorage.removeItem('routeLength');
+    localStorage.removeItem('avgSpeed');
     
     console.log('Route data submitted:', data);
     
