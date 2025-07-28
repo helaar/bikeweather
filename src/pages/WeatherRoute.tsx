@@ -328,9 +328,14 @@ const WeatherRoute = () => {
         const timeDifferenceHours = minTimeDifference / (60 * 60 * 1000);
         console.log(`Using timeseries entry with time: ${currentWeather.time} (difference: ${Math.round(timeDifferenceHours)} hours)`);
         
-        // Check if the forecast is within a reasonable time range (12 hours)
-        // This prevents showing forecasts for dates too far in the future or past
-        const forecastAvailable = timeDifferenceHours <= 12;
+        // Get current date for comparison
+        const currentDate = new Date();
+        
+        // Check if the requested time is in the future
+        const isInFuture = pointTime > currentDate;
+        
+        // For future times, use the 12-hour limit
+        const forecastAvailable = isInFuture && timeDifferenceHours <= 12;
         
         const details = currentWeather.data.instant.details;
         

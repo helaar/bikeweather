@@ -58,15 +58,25 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => 
     }
   }, [startDate, startTime, formTouched]);
 
-  // Function to validate if the selected date and time are in the future
+  // Function to validate date and time
   const validateDateTime = () => {
     if (!startDate || !startTime) return;
     
     const now = new Date();
     const selectedDateTime = new Date(`${startDate}T${startTime}`);
     
-    if (selectedDateTime < now) {
-      setDateTimeError('Det finnes ikke værvarsel for fortiden. Velg et tidspunkt i fremtiden.');
+    // Check if selected date is today
+    const isSameDay =
+      now.getFullYear() === selectedDateTime.getFullYear() &&
+      now.getMonth() === selectedDateTime.getMonth() &&
+      now.getDate() === selectedDateTime.getDate();
+    
+    // Allow times on the same day, even if they're in the past
+    if (isSameDay) {
+      setDateTimeError(null);
+    } else if (selectedDateTime < now) {
+      // Only show error for past dates (not today)
+      setDateTimeError('Det finnes ikke værvarsel for fortiden. Velg et tidspunkt i fremtiden eller i dag.');
     } else {
       setDateTimeError(null);
     }
