@@ -44,7 +44,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     
     // Heavy rain conditions
     if (lowerDesc.includes('kraftig regn') || lowerDesc.includes('heavyrain')) {
-      return '🌊';
+      return '🌧️';
     }
     
     // Regular rain conditions
@@ -72,14 +72,14 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       return '🌫️';
     }
     
-    // Cloudy conditions
-    if (lowerDesc.includes('skyet') || lowerDesc.includes('cloudy')) {
-      return '☁️';
-    }
-    
-    // Partly cloudy conditions
+    // Partly cloudy conditions - sjekk dette først siden det er mer spesifikt
     if (lowerDesc.includes('delvis skyet') || lowerDesc.includes('partlycloudy') || lowerDesc.includes('lettskyet') || lowerDesc.includes('fair')) {
       return '⛅';
+    }
+    
+    // Cloudy conditions - sjekk dette etter delvis skyet
+    if (lowerDesc.includes('skyet') || lowerDesc.includes('cloudy')) {
+      return '☁️';
     }
     
     // Default: clear/sunny

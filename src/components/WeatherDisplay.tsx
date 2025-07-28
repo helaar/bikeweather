@@ -100,12 +100,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
       return <CloudFog className={`${iconSize} text-gray-400`} />;
     }
     
-    // Cloudy conditions
-    if (lowerDesc.includes('skyet') || lowerDesc.includes('cloudy')) {
-      return <Cloud className={`${iconSize} text-gray-500`} />;
-    }
-    
-    // Partly cloudy conditions
+    // Partly cloudy conditions - sjekk dette først siden det er mer spesifikt
     if (lowerDesc.includes('delvis skyet') || lowerDesc.includes('partlycloudy') || lowerDesc.includes('lettskyet') || lowerDesc.includes('fair')) {
       return (
         <div className="relative">
@@ -113,6 +108,11 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
           <Sun className={`${smallIconSize} text-yellow-500 absolute -top-1 -right-1`} />
         </div>
       );
+    }
+    
+    // Cloudy conditions - sjekk dette etter delvis skyet
+    if (lowerDesc.includes('skyet') || lowerDesc.includes('cloudy')) {
+      return <Cloud className={`${iconSize} text-gray-500`} />;
     }
     
     // Default: clear/sunny
