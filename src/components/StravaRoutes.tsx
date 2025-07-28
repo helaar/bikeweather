@@ -59,15 +59,24 @@ export const StravaRoutes: React.FC<StravaRoutesProps> = ({ onRouteSelect }) => 
     }
   }, [nameFilter, routes]);
 
-  // Fetch routes from Strava
-  const fetchRoutes = async () => {
+  // Fetch routes from Strava with retry logic
+  const fetchRoutes = async (retryCount = 0) => {
     setLoading(true);
     try {
       const token = await getValidAccessToken();
       if (!token) {
+        console.error('Failed to get valid access token');
+        
+        // If we're not authenticated, don't show an error toast
+        if (!isAuthenticated) {
+          setLoading(false);
+          return;
+        }
+        
         throw new Error('No valid access token');
       }
       
+      console.log('Fetching Strava routes with valid token');
       const routesData = await getStravaRoutes(token);
       
       // Sort routes alphabetically by name
@@ -75,20 +84,38 @@ export const StravaRoutes: React.FC<StravaRoutesProps> = ({ onRouteSelect }) => 
         a.name.localeCompare(b.name, 'no', { sensitivity: 'base' })
       );
       
+      console.log(`Successfully fetched ${sortedRoutes.length} routes from Strava`);
       setRoutes(sortedRoutes);
       setFilteredRoutes(sortedRoutes);
     } catch (error) {
-      console.error('Error fetching Strava routes:', error);
+      console.error(`Error fetching Strava routes (attempt ${retryCount + 1}):`, error);
+      
+      // Check if this might be a token issue
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isAuthError =
+        errorMessage.includes('401') ||
+        errorMessage.includes('unauthorized') ||
+        errorMessage.includes('authentication');
+      
+      // Retry once for auth errors
+      if (isAuthError && retryCount === 0) {
+        console.log('Authentication error detected, retrying after short delay...');
+        setTimeout(() => fetchRoutes(retryCount + 1), 2000);
+        return;
+      }
+      
       toast({
         title: 'Kunne ikke hente ruter',
-        description: 'Det oppstod en feil ved henting av ruter fra Strava.',
+        description: isAuthError
+          ? 'Problemer med Strava-tilkoblingen. Prøv å koble til på nytt.'
+          : 'Det oppstod en feil ved henting av ruter fra Strava.',
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
   };
-// Handle route selection
+// Handle route selection with improved error handling
 const handleRouteSelect = async (route: StravaRoute) => {
   setSelectedRouteId(route.id);
   setLoadingGpx(true);
@@ -96,8 +123,11 @@ const handleRouteSelect = async (route: StravaRoute) => {
   try {
     const token = await getValidAccessToken();
     if (!token) {
+      console.error('Failed to get valid access token when selecting route');
       throw new Error('No valid access token');
     }
+    
+    console.log(`Selecting Strava route: ${route.name} (ID: ${route.id})`);
     
     // First try: Use the summary_polyline from the route list if available
     if (route.map && route.map.summary_polyline) {
@@ -264,7 +294,7 @@ const handleRouteSelect = async (route: StravaRoute) => {
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchRoutes}
+            onClick={() => fetchRoutes(0)}
             disabled={loading}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />

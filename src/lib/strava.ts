@@ -300,40 +300,106 @@ export const metersToKm = (meters: number): string => {
 };
 
 // Helper function to check if token is expired
-export const isTokenExpired = (expiresAt: number): boolean => {
-  // Add a 5-minute buffer to ensure we refresh before expiration
-  return Date.now() / 1000 > expiresAt - 300;
+export const isTokenExpired = (expiresAt: number, bufferSeconds = 300): boolean => {
+  // Default 5-minute buffer to ensure we refresh before expiration
+  // Can specify a larger buffer for more conservative checking
+  return Date.now() / 1000 > expiresAt - bufferSeconds;
 };
 
 // Local storage keys
 export const STRAVA_TOKEN_STORAGE_KEY = 'strava_token';
 export const STRAVA_ATHLETE_STORAGE_KEY = 'strava_athlete';
 
-// Save token to local storage
-export const saveStravaToken = (tokenData: StravaTokenResponse): void => {
-  localStorage.setItem(STRAVA_TOKEN_STORAGE_KEY, JSON.stringify({
-    access_token: tokenData.access_token,
-    refresh_token: tokenData.refresh_token,
-    expires_at: tokenData.expires_at
-  }));
-  
-  localStorage.setItem(STRAVA_ATHLETE_STORAGE_KEY, JSON.stringify(tokenData.athlete));
+// Enhanced token storage interface
+interface StoredStravaToken {
+  access_token: string;
+  refresh_token: string;
+  expires_at: number;
+  stored_at: number; // Timestamp when token was stored
+}
+
+// Save token to local storage with enhanced error handling
+export const saveStravaToken = (tokenData: StravaTokenResponse): boolean => {
+  try {
+    // Validate token data before saving
+    if (!tokenData.access_token || !tokenData.refresh_token || !tokenData.expires_at) {
+      console.error('Invalid token data, missing required fields:', tokenData);
+      return false;
+    }
+    
+    const tokenToStore: StoredStravaToken = {
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
+      expires_at: tokenData.expires_at,
+      stored_at: Math.floor(Date.now() / 1000) // Current timestamp in seconds
+    };
+    
+    localStorage.setItem(STRAVA_TOKEN_STORAGE_KEY, JSON.stringify(tokenToStore));
+    localStorage.setItem(STRAVA_ATHLETE_STORAGE_KEY, JSON.stringify(tokenData.athlete));
+    
+    console.log('Strava token saved successfully. Expires at:',
+      new Date(tokenData.expires_at * 1000).toLocaleString());
+    return true;
+  } catch (error) {
+    console.error('Failed to save Strava token to localStorage:', error);
+    return false;
+  }
 };
 
-// Get token from local storage
-export const getStoredStravaToken = (): { access_token: string; refresh_token: string; expires_at: number } | null => {
-  const tokenData = localStorage.getItem(STRAVA_TOKEN_STORAGE_KEY);
-  return tokenData ? JSON.parse(tokenData) : null;
+// Get token from local storage with enhanced error handling
+export const getStoredStravaToken = (): StoredStravaToken | null => {
+  try {
+    const tokenData = localStorage.getItem(STRAVA_TOKEN_STORAGE_KEY);
+    if (!tokenData) return null;
+    
+    const parsedToken = JSON.parse(tokenData) as StoredStravaToken;
+    
+    // Validate parsed token
+    if (!parsedToken.access_token || !parsedToken.refresh_token || !parsedToken.expires_at) {
+      console.error('Retrieved invalid token data from localStorage');
+      return null;
+    }
+    
+    // Add stored_at if it doesn't exist (for backward compatibility)
+    if (!parsedToken.stored_at) {
+      parsedToken.stored_at = Math.floor(Date.now() / 1000) - 3600; // Assume stored 1 hour ago
+    }
+    
+    return parsedToken;
+  } catch (error) {
+    console.error('Failed to retrieve Strava token from localStorage:', error);
+    return null;
+  }
 };
 
-// Get athlete from local storage
+// Get athlete from local storage with enhanced error handling
 export const getStoredStravaAthlete = (): StravaAthlete | null => {
-  const athleteData = localStorage.getItem(STRAVA_ATHLETE_STORAGE_KEY);
-  return athleteData ? JSON.parse(athleteData) : null;
+  try {
+    const athleteData = localStorage.getItem(STRAVA_ATHLETE_STORAGE_KEY);
+    if (!athleteData) return null;
+    
+    const parsedAthlete = JSON.parse(athleteData) as StravaAthlete;
+    
+    // Validate parsed athlete
+    if (!parsedAthlete.id) {
+      console.error('Retrieved invalid athlete data from localStorage');
+      return null;
+    }
+    
+    return parsedAthlete;
+  } catch (error) {
+    console.error('Failed to retrieve Strava athlete from localStorage:', error);
+    return null;
+  }
 };
 
-// Clear Strava data from local storage
+// Clear Strava data from local storage with logging
 export const clearStravaData = (): void => {
-  localStorage.removeItem(STRAVA_TOKEN_STORAGE_KEY);
-  localStorage.removeItem(STRAVA_ATHLETE_STORAGE_KEY);
+  try {
+    localStorage.removeItem(STRAVA_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(STRAVA_ATHLETE_STORAGE_KEY);
+    console.log('Strava data cleared from localStorage');
+  } catch (error) {
+    console.error('Failed to clear Strava data from localStorage:', error);
+  }
 };

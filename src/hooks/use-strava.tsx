@@ -30,6 +30,40 @@ export function useStrava() {
     accessToken: null,
     error: null
   });
+  
+  // Track last refresh time to prevent too frequent refreshes
+  const [lastRefreshAttempt, setLastRefreshAttempt] = useState<number>(0);
+  
+  // Refresh token function with retry logic
+  const refreshToken = useCallback(async (refreshTokenStr: string, retryCount = 0): Promise<StravaTokenResponse | null> => {
+    try {
+      console.log('Attempting to refresh Strava token...');
+      const now = Date.now();
+      
+      // Prevent refreshing too frequently (at least 10 seconds between attempts)
+      if (now - lastRefreshAttempt < 10000 && retryCount === 0) {
+        console.log('Skipping refresh - too soon since last attempt');
+        return null;
+      }
+      
+      setLastRefreshAttempt(now);
+      const refreshedToken = await refreshStravaToken(refreshTokenStr);
+      console.log('Token refreshed successfully, expires in:', refreshedToken.expires_in, 'seconds');
+      saveStravaToken(refreshedToken);
+      return refreshedToken;
+    } catch (error) {
+      console.error(`Failed to refresh token (attempt ${retryCount + 1}):`, error);
+      
+      // Retry once after a short delay if this was the first attempt
+      if (retryCount < 1) {
+        console.log('Retrying token refresh after delay...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return refreshToken(refreshTokenStr, retryCount + 1);
+      }
+      
+      return null;
+    }
+  }, [lastRefreshAttempt]);
 
   // Initialize auth state from local storage
   useEffect(() => {
@@ -39,13 +73,16 @@ export function useStrava() {
         const storedAthlete = getStoredStravaAthlete();
         
         if (storedToken && storedAthlete) {
-          // Check if token is expired and needs refresh
-          if (isTokenExpired(storedToken.expires_at)) {
-            // Token is expired, try to refresh
-            try {
-              const refreshedToken = await refreshStravaToken(storedToken.refresh_token);
-              saveStravaToken(refreshedToken);
-              
+          // Check if token is expired or will expire soon (within 30 minutes)
+          const expiresAt = storedToken.expires_at;
+          const isExpiredOrExpiringSoon = (Date.now() / 1000) > (expiresAt - 1800); // 30 min buffer
+          
+          if (isExpiredOrExpiringSoon) {
+            // Token is expired or expiring soon, try to refresh
+            console.log('Token is expired or expiring soon, refreshing...');
+            const refreshedToken = await refreshToken(storedToken.refresh_token);
+            
+            if (refreshedToken) {
               setAuthState({
                 isAuthenticated: true,
                 isLoading: false,
@@ -53,9 +90,9 @@ export function useStrava() {
                 accessToken: refreshedToken.access_token,
                 error: null
               });
-            } catch (refreshError) {
-              console.error('Failed to refresh token:', refreshError);
-              // Clear invalid tokens
+            } else {
+              // Clear invalid tokens if refresh failed
+              console.error('Token refresh failed during initialization');
               clearStravaData();
               setAuthState({
                 isAuthenticated: false,
@@ -67,6 +104,7 @@ export function useStrava() {
             }
           } else {
             // Token is still valid
+            console.log('Token is valid, expires at:', new Date(expiresAt * 1000).toLocaleString());
             setAuthState({
               isAuthenticated: true,
               isLoading: false,
@@ -77,6 +115,7 @@ export function useStrava() {
           }
         } else {
           // No stored token
+          console.log('No stored Strava token found');
           setAuthState({
             isAuthenticated: false,
             isLoading: false,
@@ -98,7 +137,7 @@ export function useStrava() {
     };
 
     initAuth();
-  }, []);
+  }, [refreshToken]);
 
   // Handle the OAuth callback
   const handleAuthCallback = useCallback(async (code: string) => {
@@ -168,27 +207,75 @@ export function useStrava() {
     });
   }, [toast]);
 
+  // Set up a periodic token refresh
+  useEffect(() => {
+    // Only set up refresh timer if authenticated
+    if (!authState.isAuthenticated) return;
+    
+    console.log('Setting up periodic token refresh check');
+    
+    // Check token every 10 minutes
+    const refreshInterval = setInterval(async () => {
+      const storedToken = getStoredStravaToken();
+      if (!storedToken) {
+        console.log('No token found during periodic check');
+        clearInterval(refreshInterval);
+        return;
+      }
+      
+      // Refresh if token expires in less than 30 minutes
+      const expiresInSeconds = storedToken.expires_at - (Date.now() / 1000);
+      console.log(`Token expires in ${Math.floor(expiresInSeconds)} seconds`);
+      
+      if (expiresInSeconds < 1800) { // 30 minutes
+        console.log('Token expiring soon, refreshing proactively');
+        const refreshedToken = await refreshToken(storedToken.refresh_token);
+        
+        if (refreshedToken) {
+          console.log('Proactive token refresh successful');
+          setAuthState(prev => ({
+            ...prev,
+            accessToken: refreshedToken.access_token
+          }));
+        } else {
+          console.error('Proactive token refresh failed');
+        }
+      }
+    }, 600000); // 10 minutes
+    
+    return () => clearInterval(refreshInterval);
+  }, [authState.isAuthenticated, refreshToken]);
+
   // Get a valid access token (refreshing if necessary)
   const getValidAccessToken = useCallback(async (): Promise<string | null> => {
     try {
       const storedToken = getStoredStravaToken();
       
       if (!storedToken) {
+        console.log('No stored token found when requesting valid access token');
         return null;
       }
       
-      // Check if token is expired
-      if (isTokenExpired(storedToken.expires_at)) {
+      // Check if token is expired or expires soon (within 10 minutes)
+      const expiresInSeconds = storedToken.expires_at - (Date.now() / 1000);
+      const isExpiringSoon = expiresInSeconds < 600; // 10 minutes
+      
+      if (isExpiringSoon) {
+        console.log(`Token expires in ${Math.floor(expiresInSeconds)} seconds, refreshing...`);
         // Refresh token
-        const refreshedToken = await refreshStravaToken(storedToken.refresh_token);
-        saveStravaToken(refreshedToken);
+        const refreshedToken = await refreshToken(storedToken.refresh_token);
         
-        setAuthState(prev => ({
-          ...prev,
-          accessToken: refreshedToken.access_token
-        }));
-        
-        return refreshedToken.access_token;
+        if (refreshedToken) {
+          console.log('Token refresh successful when getting valid access token');
+          setAuthState(prev => ({
+            ...prev,
+            accessToken: refreshedToken.access_token
+          }));
+          
+          return refreshedToken.access_token;
+        } else {
+          throw new Error('Failed to refresh token');
+        }
       }
       
       return storedToken.access_token;
@@ -213,7 +300,7 @@ export function useStrava() {
       
       return null;
     }
-  }, [toast]);
+  }, [toast, refreshToken]);
 
   return {
     ...authState,
