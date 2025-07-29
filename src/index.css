@@ -7,6 +7,33 @@
   transition: height 0.3s ease-in-out;
 }
 
+/* When dialog is open, disable pointer events on map to prevent interaction */
+/* Modern browsers with :has() support */
+body:has([role="dialog"][data-state="open"]) .leaflet-container {
+  pointer-events: none !important;
+  z-index: 10 !important; /* Ensure map stays below dialog but above other content */
+}
+
+/* Fallback for browsers without :has() support */
+[data-state="open"] ~ * .leaflet-container,
+[data-state="open"] ~ main .leaflet-container {
+  pointer-events: none !important;
+  z-index: 10 !important;
+}
+
+/* Ensure the map container doesn't interfere with other UI elements */
+#leaflet-map-container {
+  isolation: isolate;
+  z-index: 10;
+}
+
+/* Ensure dialog overlay and content are above everything else */
+[role="dialog"][data-state="open"],
+.DialogOverlay,
+.DialogContent {
+  z-index: 50 !important;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
 
 @layer base {

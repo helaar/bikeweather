@@ -335,7 +335,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           }`}
           style={{
             minHeight: isMobile && isExpanded ? '70vh' : '400px',
-            position: 'relative'
+            position: 'relative',
+            zIndex: 10 /* Ensure consistent z-index with CSS rules */
           }}
           id="leaflet-map-container"
         />
