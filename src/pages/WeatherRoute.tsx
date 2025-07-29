@@ -30,6 +30,7 @@ export interface WeatherPrediction {
   rawData: string; // Raw timeseries data as JSON string for debugging
   forecastAvailable: boolean; // Flag indicating if forecast data is available for this time
   timeDifferenceHours?: number; // Time difference between requested time and available forecast
+  timeHasPassed?: boolean; // Flag indicating if the time has passed
 }
 
 // Interface for serializable route data (without File object)
@@ -333,6 +334,7 @@ const WeatherRoute = () => {
         
         // Check if the requested time is in the future
         const isInFuture = pointTime > currentDate;
+        const timeHasPassed = !isInFuture;
         
         // For future times, use the 12-hour limit
         const forecastAvailable = isInFuture && timeDifferenceHours <= 12;
@@ -372,7 +374,8 @@ const WeatherRoute = () => {
           lon: point.lon,
           rawData: rawTimeseriesData,
           forecastAvailable: forecastAvailable,
-          timeDifferenceHours: Math.round(timeDifferenceHours)
+          timeDifferenceHours: Math.round(timeDifferenceHours),
+          timeHasPassed: timeHasPassed
         };
       });
       

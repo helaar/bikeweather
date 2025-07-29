@@ -14,7 +14,8 @@ import {
   ChevronUp,
   AlertTriangle,
   HelpCircle,
-  Cloud
+  Cloud,
+  Clock
 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { WeatherIconsModal } from '@/components/WeatherIconsModal';
@@ -265,6 +266,8 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                         <div className="flex items-center mr-3 self-center">
                           {weather.forecastAvailable ?
                             getWeatherIcon(weather.description, true) :
+                            weather.timeHasPassed ?
+                            <Clock className="h-6.5 w-6.5 text-gray-500" /> :
                             <AlertTriangle className="h-6.5 w-6.5 text-amber-500" />
                           }
                         </div>
@@ -306,8 +309,8 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                                 </div>
                               </>
                             ) : (
-                              <span className="text-sm text-amber-600 font-medium">
-                                Værvarsel ikke tilgjengelig
+                              <span className="text-sm text-gray-600 font-medium">
+                                {weather.timeHasPassed ? "Tidspunktet har passert" : "Værvarsel ikke tilgjengelig"}
                               </span>
                             )}
                           </div>
@@ -320,6 +323,8 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                         <div className="flex items-center mr-4 self-center">
                           {weather.forecastAvailable ?
                             getWeatherIcon(weather.description, true) :
+                            weather.timeHasPassed ?
+                            <Clock className="h-6.5 w-6.5 text-gray-500" /> :
                             <AlertTriangle className="h-6.5 w-6.5 text-amber-500" />
                           }
                         </div>
@@ -362,8 +367,8 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                         ) : (
                           /* No forecast available message */
                           <div className="flex items-center">
-                            <span className="text-amber-600 font-medium">
-                              Værvarsel ikke tilgjengelig
+                            <span className={`${weather.timeHasPassed ? "text-gray-600" : "text-amber-600"} font-medium`}>
+                              {weather.timeHasPassed ? "Tidspunktet har passert" : "Værvarsel ikke tilgjengelig"}
                             </span>
                           </div>
                         )}
@@ -379,9 +384,11 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                             {weather.description}
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700">
-                            Ingen værdata tilgjengelig for dette tidspunktet
-                            {weather.timeDifferenceHours && ` (${weather.timeDifferenceHours} timer fra nærmeste prognose)`}
+                          <Badge variant="outline" className={`text-xs ${weather.timeHasPassed ? "bg-gray-50 text-gray-700" : "bg-amber-50 text-amber-700"}`}>
+                            {weather.timeHasPassed
+                              ? "Tidspunktet har passert"
+                              : `Ingen værdata tilgjengelig for dette tidspunktet${weather.timeDifferenceHours ? ` (${weather.timeDifferenceHours} timer fra nærmeste prognose)` : ""}`
+                            }
                           </Badge>
                         )}
                         
@@ -503,9 +510,12 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                         </div>
                       )
                       ) : (
-                        <div className="p-3 text-center text-amber-600">
-                          <AlertTriangle className="h-5 w-5 mx-auto mb-2" />
-                          <p>Ingen værdata tilgjengelig for dette tidspunktet</p>
+                        <div className={`p-3 text-center ${weather.timeHasPassed ? "text-gray-600" : "text-amber-600"}`}>
+                          {weather.timeHasPassed
+                            ? <Clock className="h-5 w-5 mx-auto mb-2" />
+                            : <AlertTriangle className="h-5 w-5 mx-auto mb-2" />
+                          }
+                          <p>{weather.timeHasPassed ? "Tidspunktet har passert" : "Ingen værdata tilgjengelig for dette tidspunktet"}</p>
                         </div>
                       )}
                       
