@@ -6,14 +6,10 @@ import { WeatherPrediction, RouteData } from '@/pages/WeatherRoute';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Cloud,
-  CloudRain,
   CloudLightning,
-  CloudSnow,
-  CloudFog,
-  CloudDrizzle,
   Sun,
   MapPin,
-  Droplets,
+  Droplet,
   Thermometer,
   Wind,
   Code,
@@ -54,53 +50,126 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     // Set icon size based on view
     const iconSize = isMobileView ? "h-6.5 w-6.5" : "h-5 w-5";
     const smallIconSize = isMobileView ? "h-4 w-4" : "h-3 w-3";
+    const tinyIconSize = isMobileView ? "h-3 w-3" : "h-2 w-2";
     
     // Thunderstorm conditions
     if (lowerDesc.includes('torden')) {
       return <CloudLightning className={`${iconSize} text-purple-500`} />;
     }
     
-    // Heavy rain conditions
-    if (lowerDesc.includes('kraftig regn') || lowerDesc.includes('heavyrain')) {
+    // Light rain/drizzle conditions
+    if (lowerDesc.includes('lett regn') || lowerDesc.includes('lightrain') || lowerDesc.includes('drizzle')) {
       return (
         <div className="relative">
-          <CloudRain className={`${iconSize} text-blue-700`} />
-          <AlertTriangle className={`${smallIconSize} text-red-500 absolute -top-1 -right-1`} />
+          <Cloud className={`${iconSize} text-blue-600`} />
+          {/* Single centered droplet */}
+          <div className="absolute -bottom-1 left-0 right-0 flex justify-center">
+            <Droplet className={`${tinyIconSize} text-blue-600`} />
+          </div>
         </div>
       );
     }
     
     // Regular rain conditions
     if (lowerDesc.includes('regn') || lowerDesc.includes('rain')) {
-      return <CloudRain className={`${iconSize} text-blue-500`} />;
+      return (
+        <div className="relative">
+          <Cloud className={`${iconSize} text-blue-600`} />
+          {/* Two droplets */}
+          <div className="absolute -bottom-1 left-0 right-0 flex justify-center gap-1">
+            <Droplet className={`${tinyIconSize} text-blue-600`} />
+            <Droplet className={`${tinyIconSize} text-blue-600`} />
+          </div>
+        </div>
+      );
     }
     
-    // Drizzle conditions
-    if (lowerDesc.includes('lett regn') || lowerDesc.includes('lightrain') || lowerDesc.includes('drizzle')) {
-      return <CloudDrizzle className={`${iconSize} text-blue-400`} />;
+    // Heavy rain conditions
+    if (lowerDesc.includes('kraftig regn') || lowerDesc.includes('heavyrain')) {
+      return (
+        <div className="relative">
+          <Cloud className={`${iconSize} text-blue-600`} />
+          {/* Three droplets */}
+          <div className="absolute -bottom-1 left-0 right-0 flex justify-center gap-1">
+            <Droplet className={`${tinyIconSize} text-blue-600`} />
+            <Droplet className={`${tinyIconSize} text-blue-600`} />
+            <Droplet className={`${tinyIconSize} text-blue-600`} />
+          </div>
+        </div>
+      );
     }
     
-    // Snow conditions
+    // Light snow/snow showers conditions
+    if (lowerDesc.includes('lett snø') || lowerDesc.includes('lightsnow') || lowerDesc.includes('snøbyger')) {
+      return (
+        <div className="relative">
+          <Cloud className={`${iconSize} text-gray-400`} />
+          {/* Single centered snowflake - dark blue */}
+          <div className="absolute -bottom-1 left-0 right-0 flex justify-center">
+            <div className="text-blue-600 text-xs">❄</div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Regular snow conditions
     if (lowerDesc.includes('snø') || lowerDesc.includes('snow')) {
-      return <CloudSnow className={`${iconSize} text-blue-200`} />;
+      return (
+        <div className="relative">
+          <Cloud className={`${iconSize} text-gray-400`} />
+          {/* Two snowflakes - dark blue */}
+          <div className="absolute -bottom-1 left-0 right-0 flex justify-center gap-1">
+            <div className="text-blue-600 text-xs">❄</div>
+            <div className="text-blue-600 text-xs">❄</div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Heavy snow conditions
+    if (lowerDesc.includes('kraftig snø') || lowerDesc.includes('heavysnow')) {
+      return (
+        <div className="relative">
+          <Cloud className={`${iconSize} text-gray-400`} />
+          {/* Three snowflakes - dark blue */}
+          <div className="absolute -bottom-1 left-0 right-0 flex justify-center gap-1">
+            <div className="text-blue-600 text-xs">❄</div>
+            <div className="text-blue-600 text-xs">❄</div>
+            <div className="text-blue-600 text-xs">❄</div>
+          </div>
+        </div>
+      );
     }
     
     // Sleet conditions
     if (lowerDesc.includes('sludd') || lowerDesc.includes('sleet')) {
       return (
         <div className="relative">
-          <CloudRain className={`${iconSize} text-blue-400`} />
-          <CloudSnow className={`${smallIconSize} text-blue-200 absolute -top-1 -right-1`} />
+          <Cloud className={`${iconSize} text-blue-600`} />
+          {/* Mix of droplet and snowflake */}
+          <div className="absolute -bottom-1 left-0 right-0 flex justify-center items-center gap-1">
+            <Droplet className={`${tinyIconSize} text-blue-600`} />
+            <div className="text-blue-600 text-xs mt-0.5">❄</div>
+          </div>
         </div>
       );
     }
     
-    // Fog conditions
+    // Fog conditions - ENHANCED
     if (lowerDesc.includes('tåke') || lowerDesc.includes('fog')) {
-      return <CloudFog className={`${iconSize} text-gray-400`} />;
+      return (
+        <div className="relative">
+          <Cloud className={`${iconSize} text-gray-400`} />
+          <div className="absolute -bottom-1 left-0 right-0 flex flex-col items-center">
+            <div className="w-3/4 h-px bg-gray-400 mb-0.5"></div>
+            <div className="w-2/3 h-px bg-gray-400 mb-0.5"></div>
+            <div className="w-1/2 h-px bg-gray-400"></div>
+          </div>
+        </div>
+      );
     }
     
-    // Partly cloudy conditions - sjekk dette først siden det er mer spesifikt
+    // Partly cloudy conditions - ENHANCED
     if (lowerDesc.includes('delvis skyet') || lowerDesc.includes('partlycloudy') || lowerDesc.includes('lettskyet') || lowerDesc.includes('fair')) {
       return (
         <div className="relative">
@@ -110,7 +179,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
       );
     }
     
-    // Cloudy conditions - sjekk dette etter delvis skyet
+    // Cloudy conditions
     if (lowerDesc.includes('skyet') || lowerDesc.includes('cloudy')) {
       return <Cloud className={`${iconSize} text-gray-500`} />;
     }
@@ -333,7 +402,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                           <div className="flex items-center gap-4">
                             {weather.precipitation > 0 && (
                               <div className="flex items-center gap-1">
-                                <Droplets className="h-4 w-4 text-blue-500" />
+                                <Droplet className="h-4 w-4 text-blue-500" />
                                 <span className="text-blue-600">{weather.precipitation}mm</span>
                               </div>
                             )}
@@ -413,7 +482,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                             </div>
                             
                             <div className="flex items-center gap-2">
-                              <Droplets className="h-4 w-4 text-blue-500" />
+                              <Droplet className="h-4 w-4 text-blue-500" />
                               <div>
                                 <span className="text-blue-600">{weather.precipitation}mm</span>
                                 <span className="text-xs text-gray-500 ml-1">
@@ -464,7 +533,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
                           </div>
                           
                           <div className="flex items-center gap-2">
-                            <Droplets className="h-4 w-4 text-blue-500" />
+                            <Droplet className="h-4 w-4 text-blue-500" />
                             <div>
                               <span className="text-blue-600">{weather.precipitation}mm</span>
                               <span className="text-gray-500 ml-1">
