@@ -257,3 +257,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [OpenStreetMap](https://www.openstreetmap.org/) for mapping and geocoding services
 - [Leaflet](https://leafletjs.com/) for the interactive map implementation
 - [shadcn/ui](https://ui.shadcn.com/) for the beautiful UI components
+- [Rittvær](https://raceweather.azurewebsites.net/) for the inspiration to make this site
