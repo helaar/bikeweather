@@ -63,7 +63,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         <div className="relative">
           <Cloud className={`${iconSize} text-blue-600`} />
           {/* Single centered droplet */}
-          <div className="absolute -bottom-1 left-0 right-0 flex justify-center">
+          <div className="absolute -bottom-2 left-0 right-0 flex justify-center">
             <Droplet className={`${tinyIconSize} text-blue-600`} />
           </div>
         </div>
@@ -76,7 +76,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         <div className="relative">
           <Cloud className={`${iconSize} text-blue-600`} />
           {/* Two droplets */}
-          <div className="absolute -bottom-1 left-0 right-0 flex justify-center gap-1">
+          <div className="absolute -bottom-2 left-0 right-0 flex justify-center gap-0.5">
             <Droplet className={`${tinyIconSize} text-blue-600`} />
             <Droplet className={`${tinyIconSize} text-blue-600`} />
           </div>
@@ -90,7 +90,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         <div className="relative">
           <Cloud className={`${iconSize} text-blue-600`} />
           {/* Three droplets */}
-          <div className="absolute -bottom-1 left-0 right-0 flex justify-center gap-1">
+          <div className="absolute -bottom-2 left-0 right-0 flex justify-center gap-1">
             <Droplet className={`${tinyIconSize} text-blue-600`} />
             <Droplet className={`${tinyIconSize} text-blue-600`} />
             <Droplet className={`${tinyIconSize} text-blue-600`} />
@@ -118,7 +118,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         <div className="relative">
           <Cloud className={`${iconSize} text-gray-400`} />
           {/* Two snowflakes - dark blue */}
-          <div className="absolute -bottom-1 left-0 right-0 flex justify-center gap-1">
+          <div className="absolute -bottom-1 left-0 right-0 flex justify-center gap-0.5">
             <div className="text-blue-600 text-xs">❄</div>
             <div className="text-blue-600 text-xs">❄</div>
           </div>
@@ -132,7 +132,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         <div className="relative">
           <Cloud className={`${iconSize} text-gray-400`} />
           {/* Three snowflakes - dark blue */}
-          <div className="absolute -bottom-1 left-0 right-0 flex justify-center gap-1">
+          <div className="absolute -bottom-1 left-0 right-0 flex justify-center gap-0.5">
             <div className="text-blue-600 text-xs">❄</div>
             <div className="text-blue-600 text-xs">❄</div>
             <div className="text-blue-600 text-xs">❄</div>
@@ -147,9 +147,9 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
         <div className="relative">
           <Cloud className={`${iconSize} text-blue-600`} />
           {/* Mix of droplet and snowflake */}
-          <div className="absolute -bottom-1 left-0 right-0 flex justify-center items-center gap-1">
-            <Droplet className={`${tinyIconSize} text-blue-600`} />
-            <div className="text-blue-600 text-xs mt-0.5">❄</div>
+          <div className="absolute -bottom-2 left-0 right-0 flex justify-center items-center gap-0.5">
+            <Droplet className={`${tinyIconSize} text-blue-600 relative top-0.5`} />
+            <div className="text-blue-600 text-xs">❄</div>
           </div>
         </div>
       );
