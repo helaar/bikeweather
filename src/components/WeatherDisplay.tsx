@@ -15,9 +15,11 @@ import {
   Code,
   ChevronDown,
   ChevronUp,
-  AlertTriangle
+  AlertTriangle,
+  HelpCircle
 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { WeatherIconsModal } from '@/components/WeatherIconsModal';
 
 interface WeatherDisplayProps {
   weatherData: WeatherPrediction[];
@@ -282,10 +284,18 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     <div className="space-y-4">
       <Card>
         <CardHeader className={isMobile ? "px-3 py-3" : undefined}>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Værvarsel
-          </CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Værvarsel
+            </CardTitle>
+            <WeatherIconsModal trigger={
+              <button className="flex items-center text-xs text-gray-500 hover:text-gray-700">
+                <HelpCircle className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Værsymboler</span>
+              </button>
+            } />
+          </div>
           {routeData && (
             <div className="space-y-1">
               <p className={`${isMobile ? "text-xs" : "text-sm"} text-gray-600`}>
