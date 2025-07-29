@@ -132,35 +132,54 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         console.log("Adding weather markers");
         // Add weather point markers
         weatherPoints.forEach((point, index) => {
-          // Skip points where forecast is not available
-          if (!point.forecastAvailable) {
-            console.log(`Skipping weather marker for ${point.location} at ${point.time} - no forecast available`);
-            return;
-          }
-          
           // Determine marker style based on weather conditions
-          const lowerDesc = point.description.toLowerCase();
-          
-          // Set border color based on weather severity
           let borderColor = 'border-blue-500'; // Default border color
           let bgColor = 'bg-white/70'; // Semi-transparent background
+          let weatherIconHtml = '';
+          let temperatureHtml = '';
+          let windHtml = '';
           
-          // Severe weather conditions (thunder, heavy rain, strong wind)
-          if (lowerDesc.includes('torden') ||
-              lowerDesc.includes('kraftig') ||
-              lowerDesc.includes('heavy') ||
-              point.windSpeed >= 10) {
-            borderColor = 'border-red-500';
-            bgColor = 'bg-red-50/80';
-          }
-          // Moderate weather conditions (regular rain, snow)
-          else if (lowerDesc.includes('regn') ||
-                   lowerDesc.includes('rain') ||
-                   lowerDesc.includes('snø') ||
-                   lowerDesc.includes('snow') ||
-                   point.windSpeed >= 6) {
-            borderColor = 'border-yellow-500';
-            bgColor = 'bg-yellow-50/80';
+          if (point.forecastAvailable) {
+            const lowerDesc = point.description.toLowerCase();
+            
+            // Set border color based on weather severity
+            // Severe weather conditions (thunder, heavy rain, strong wind)
+            if (lowerDesc.includes('torden') ||
+                lowerDesc.includes('kraftig') ||
+                lowerDesc.includes('heavy') ||
+                point.windSpeed >= 10) {
+              borderColor = 'border-red-500';
+              bgColor = 'bg-red-50/80';
+            }
+            // Moderate weather conditions (regular rain, snow)
+            else if (lowerDesc.includes('regn') ||
+                     lowerDesc.includes('rain') ||
+                     lowerDesc.includes('snø') ||
+                     lowerDesc.includes('snow') ||
+                     point.windSpeed >= 6) {
+              borderColor = 'border-yellow-500';
+              bgColor = 'bg-yellow-50/80';
+            }
+            
+            // Weather icon based on conditions
+            weatherIconHtml = `<div class="text-sm">${getWeatherIcon(point.description)}</div>`;
+            
+            // Temperature display
+            temperatureHtml = `<div class="text-xs font-semibold">${point.temperature}°</div>`;
+            
+            // Wind display for strong winds
+            windHtml = point.windSpeed >= 8 ? `<div class="text-xs text-red-600">${point.windSpeed} m/s</div>` : '';
+          } else {
+            // For unavailable forecasts, use gray styling
+            borderColor = point.timeHasPassed ? 'border-gray-400' : 'border-amber-400';
+            bgColor = point.timeHasPassed ? 'bg-gray-100/80' : 'bg-amber-50/80';
+            
+            // Use clock icon for past times, alert triangle for unavailable forecasts
+            weatherIconHtml = `<div class="text-sm">${point.timeHasPassed ? '🕒' : '⚠️'}</div>`;
+            
+            // No temperature or wind display for unavailable forecasts
+            temperatureHtml = '';
+            windHtml = '';
           }
           
           // Create marker with appropriate styling (smaller and less dominant)
@@ -168,9 +187,9 @@ export const RouteMap: React.FC<RouteMapProps> = ({
             icon: window.L.divIcon({
               html: `
                 <div class="${bgColor} rounded-full p-1 shadow-sm border ${borderColor} text-center">
-                  <div class="text-sm">${getWeatherIcon(point.description)}</div>
-                  <div class="text-xs font-semibold">${point.temperature}°</div>
-                  ${point.windSpeed >= 8 ? `<div class="text-xs text-red-600">${point.windSpeed} m/s</div>` : ''}
+                  ${weatherIconHtml}
+                  ${temperatureHtml}
+                  ${windHtml}
                 </div>
               `,
               className: 'weather-marker',
@@ -180,17 +199,15 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           }).addTo(map);
 
           // Determine if there are any weather warnings to show
-          const hasThunder = lowerDesc.includes('torden');
-          const hasHeavyRain = lowerDesc.includes('kraftig regn') || lowerDesc.includes('heavyrain');
-          const hasStrongWind = point.windSpeed >= 10;
-          const hasModerateWind = point.windSpeed >= 6 && point.windSpeed < 10;
-          
-          // Create warning messages - only show warnings if forecast is available
           let warningHTML = '';
           
-          // We already checked forecastAvailable before creating the marker,
-          // but we'll keep the check here for clarity and future-proofing
           if (point.forecastAvailable) {
+            const hasThunder = point.description.toLowerCase().includes('torden');
+            const hasHeavyRain = point.description.toLowerCase().includes('kraftig regn') ||
+                                point.description.toLowerCase().includes('heavyrain');
+            const hasStrongWind = point.windSpeed >= 10;
+            const hasModerateWind = point.windSpeed >= 6 && point.windSpeed < 10;
+            
             if (hasThunder || hasHeavyRain || hasStrongWind) {
               warningHTML = `
                 <div class="mt-2 p-1 bg-red-50 border border-red-300 rounded text-xs text-red-700">
@@ -209,6 +226,14 @@ export const RouteMap: React.FC<RouteMapProps> = ({
                 </div>
               `;
             }
+          } else {
+            // Add a notice for unavailable forecasts
+            warningHTML = `
+              <div class="mt-2 p-1 ${point.timeHasPassed ? 'bg-gray-50 border border-gray-300 text-gray-700' : 'bg-amber-50 border border-amber-300 text-amber-700'} rounded text-xs">
+                <strong>${point.timeHasPassed ? 'Merknad:' : 'Advarsel:'}</strong>
+                <div>${point.timeHasPassed ? 'Tidspunktet har passert' : 'Værvarsel ikke tilgjengelig'}</div>
+              </div>
+            `;
           }
           
           // Add popup with enhanced weather details
@@ -219,29 +244,35 @@ export const RouteMap: React.FC<RouteMapProps> = ({
               
               ${warningHTML}
               
-              <div class="mt-2 space-y-1">
-                <div class="flex justify-between text-xs">
-                  <span>Temperatur:</span>
-                  <span class="font-semibold">${point.temperature}°C</span>
-                  ${Math.abs(point.temperature - point.feelsLike) >= 2 ?
-                    `<span class="text-xs text-gray-500">(Føles som ${point.feelsLike}°C)</span>` : ''}
+              ${point.forecastAvailable ? `
+                <div class="mt-2 space-y-1">
+                  <div class="flex justify-between text-xs">
+                    <span>Temperatur:</span>
+                    <span class="font-semibold">${point.temperature}°C</span>
+                    ${Math.abs(point.temperature - point.feelsLike) >= 2 ?
+                      `<span class="text-xs text-gray-500">(Føles som ${point.feelsLike}°C)</span>` : ''}
+                  </div>
+                  <div class="flex justify-between text-xs">
+                    <span>Nedbør:</span>
+                    <span class="font-semibold">${point.precipitation}mm</span>
+                  </div>
+                  <div class="flex justify-between text-xs">
+                    <span>Vind:</span>
+                    <span class="font-semibold ${point.windSpeed >= 8 ? 'text-red-600' : ''}">${point.windSpeed} m/s ${point.windDirection}</span>
+                  </div>
+                  <div class="flex justify-between text-xs">
+                    <span>Luftfuktighet:</span>
+                    <span class="font-semibold">${point.humidity}%</span>
+                  </div>
+                  <div class="text-xs text-center mt-2 font-medium">
+                    ${point.description}
+                  </div>
                 </div>
-                <div class="flex justify-between text-xs">
-                  <span>Nedbør:</span>
-                  <span class="font-semibold">${point.precipitation}mm</span>
+              ` : `
+                <div class="p-3 text-center ${point.timeHasPassed ? "text-gray-600" : "text-amber-600"}">
+                  <p class="mt-2">${point.timeHasPassed ? "Tidspunktet har passert" : "Ingen værdata tilgjengelig for dette tidspunktet"}</p>
                 </div>
-                <div class="flex justify-between text-xs">
-                  <span>Vind:</span>
-                  <span class="font-semibold ${point.windSpeed >= 8 ? 'text-red-600' : ''}">${point.windSpeed} m/s ${point.windDirection}</span>
-                </div>
-                <div class="flex justify-between text-xs">
-                  <span>Luftfuktighet:</span>
-                  <span class="font-semibold">${point.humidity}%</span>
-                </div>
-                <div class="text-xs text-center mt-2 font-medium">
-                  ${point.description}
-                </div>
-              </div>
+              `}
             </div>
           `, { maxWidth: 300 });
         });
