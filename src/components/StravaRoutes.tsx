@@ -268,7 +268,7 @@ const handleRouteSelect = async (route: StravaRoute) => {
           <div className="flex flex-col items-center justify-center py-6">
             <StravaIcon className="h-12 w-12 text-orange-500 mb-4" size={48} />
             <p className="text-center mb-4">
-              Koble til Strava-kontoen din for å importere dine lagrede ruter direkte.
+              Koble til Strava-kontoen din for å hente lagrede ruter direkte.
             </p>
             <Button 
               onClick={login}
