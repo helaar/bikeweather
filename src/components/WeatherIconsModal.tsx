@@ -1,14 +1,9 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { 
-  Cloud, 
-  Droplet, 
-  HelpCircle, 
-  Sun, 
-  CloudLightning
-} from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { WeatherIcons } from '@/components/icons/WeatherIcons';
 
 interface WeatherIconsModalProps {
   trigger?: React.ReactNode;
@@ -25,120 +20,43 @@ export const WeatherIconsModal: React.FC<WeatherIconsModalProps> = ({
     
     switch (type) {
       case 'thunderstorm':
-        return <CloudLightning className={`${iconSize} text-purple-500`} />;
+        return <WeatherIcons.Thunderstorm size={iconSize} />;
       
       case 'light-rain':
-        return (
-          <div className="relative">
-            <Cloud className={`${iconSize} text-blue-600`} />
-            {/* Single centered droplet */}
-            <div className="absolute -bottom-2 left-0 right-0 flex justify-center">
-              <Droplet className={`${tinyIconSize} text-blue-600`} />
-            </div>
-          </div>
-        );
+        return <WeatherIcons.LightRain size={iconSize} />;
       
       case 'rain':
-        return (
-          <div className="relative">
-            <Cloud className={`${iconSize} text-blue-600`} />
-            {/* Two droplets */}
-            <div className="absolute -bottom-2 left-0 right-0 flex justify-center gap-0.5">
-              <Droplet className={`${tinyIconSize} text-blue-600`} />
-              <Droplet className={`${tinyIconSize} text-blue-600`} />
-            </div>
-          </div>
-        );
+        return <WeatherIcons.Rain size={iconSize} />;
       
       case 'heavy-rain':
-        return (
-          <div className="relative">
-            <Cloud className={`${iconSize} text-blue-600`} />
-            {/* Three droplets */}
-            <div className="absolute -bottom-2 left-0 right-0 flex justify-center gap-1">
-              <Droplet className={`${tinyIconSize} text-blue-600`} />
-              <Droplet className={`${tinyIconSize} text-blue-600`} />
-              <Droplet className={`${tinyIconSize} text-blue-600`} />
-            </div>
-          </div>
-        );
+        return <WeatherIcons.HeavyRain size={iconSize} />;
       
       case 'light-snow':
-        return (
-          <div className="relative">
-            <Cloud className={`${iconSize} text-gray-400`} />
-            {/* Single centered snowflake */}
-            <div className="absolute -bottom-1 left-0 right-0 flex justify-center">
-              <div className="text-blue-600 text-xs">❄</div>
-            </div>
-          </div>
-        );
+        return <WeatherIcons.LightSnow size={iconSize} />;
       
       case 'snow':
-        return (
-          <div className="relative">
-            <Cloud className={`${iconSize} text-gray-400`} />
-            {/* Two snowflakes */}
-            <div className="absolute -bottom-1 left-0 right-0 flex justify-center gap-0.5">
-              <div className="text-blue-600 text-xs">❄</div>
-              <div className="text-blue-600 text-xs">❄</div>
-            </div>
-          </div>
-        );
+        return <WeatherIcons.Snow size={iconSize} />;
       
       case 'heavy-snow':
-        return (
-          <div className="relative">
-            <Cloud className={`${iconSize} text-gray-400`} />
-            {/* Three snowflakes */}
-            <div className="absolute -bottom-1 left-0 right-0 flex justify-center gap-0.5">
-              <div className="text-blue-600 text-xs">❄</div>
-              <div className="text-blue-600 text-xs">❄</div>
-              <div className="text-blue-600 text-xs">❄</div>
-            </div>
-          </div>
-        );
+        return <WeatherIcons.HeavySnow size={iconSize} />;
       
       case 'sleet':
-        return (
-          <div className="relative">
-            <Cloud className={`${iconSize} text-blue-600`} />
-            {/* Mix of droplet and snowflake */}
-            <div className="absolute -bottom-2 left-0 right-0 flex justify-center items-center gap-0.5">
-              <Droplet className={`${tinyIconSize} text-blue-600 relative top-0.5`} />
-              <div className="text-blue-600 text-xs">❄</div>
-            </div>
-          </div>
-        );
+        return <WeatherIcons.Sleet size={iconSize} />;
       
       case 'fog':
-        return (
-          <div className="relative">
-            <Cloud className={`${iconSize} text-gray-400`} />
-            <div className="absolute -bottom-1 left-0 right-0 flex flex-col items-center">
-              <div className="w-3/4 h-px bg-gray-400 mb-0.5"></div>
-              <div className="w-2/3 h-px bg-gray-400 mb-0.5"></div>
-              <div className="w-1/2 h-px bg-gray-400"></div>
-            </div>
-          </div>
-        );
+        return <WeatherIcons.Fog size={iconSize} />;
       
       case 'partly-cloudy':
-        return (
-          <div className="relative">
-            <Cloud className={`${iconSize} text-gray-400`} />
-            <Sun className={`${smallIconSize} text-yellow-500 absolute -top-1 -right-1`} />
-          </div>
-        );
+        return <WeatherIcons.PartlyCloudy size={iconSize} smallSize={smallIconSize} />;
       
       case 'cloudy':
-        return <Cloud className={`${iconSize} text-gray-500`} />;
+        return <WeatherIcons.Cloudy size={iconSize} />;
       
       case 'clear':
-        return <Sun className={`${iconSize} text-yellow-500`} />;
+        return <WeatherIcons.Clear size={iconSize} />;
       
       default:
-        return <Cloud className={`${iconSize} text-gray-500`} />;
+        return <WeatherIcons.Cloudy size={iconSize} />;
     }
   };
 

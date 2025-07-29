@@ -5,9 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { WeatherPrediction, RouteData } from '@/pages/WeatherRoute';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
-  Cloud,
-  CloudLightning,
-  Sun,
   MapPin,
   Droplet,
   Thermometer,
@@ -16,10 +13,12 @@ import {
   ChevronDown,
   ChevronUp,
   AlertTriangle,
-  HelpCircle
+  HelpCircle,
+  Cloud
 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { WeatherIconsModal } from '@/components/WeatherIconsModal';
+import { WeatherIcons } from '@/components/icons/WeatherIcons';
 
 interface WeatherDisplayProps {
   weatherData: WeatherPrediction[];
@@ -52,142 +51,65 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
     // Set icon size based on view
     const iconSize = isMobileView ? "h-6.5 w-6.5" : "h-5 w-5";
     const smallIconSize = isMobileView ? "h-4 w-4" : "h-3 w-3";
-    const tinyIconSize = isMobileView ? "h-3 w-3" : "h-2 w-2";
+    const tinyIconSize = "h-3 w-3"; // Consistent raindrop size for all views
     
     // Thunderstorm conditions
     if (lowerDesc.includes('torden')) {
-      return <CloudLightning className={`${iconSize} text-purple-500`} />;
+      return <WeatherIcons.Thunderstorm size={iconSize} />;
     }
     
     // Light rain/drizzle conditions
     if (lowerDesc.includes('lett regn') || lowerDesc.includes('lightrain') || lowerDesc.includes('drizzle')) {
-      return (
-        <div className="relative">
-          <Cloud className={`${iconSize} text-blue-600`} />
-          {/* Single centered droplet */}
-          <div className="absolute -bottom-2 left-0 right-0 flex justify-center">
-            <Droplet className={`${tinyIconSize} text-blue-600`} />
-          </div>
-        </div>
-      );
+      return <WeatherIcons.LightRain size={iconSize} />;
     }
     
     // Regular rain conditions
     if (lowerDesc.includes('regn') || lowerDesc.includes('rain')) {
-      return (
-        <div className="relative">
-          <Cloud className={`${iconSize} text-blue-600`} />
-          {/* Two droplets */}
-          <div className="absolute -bottom-2 left-0 right-0 flex justify-center gap-0.5">
-            <Droplet className={`${tinyIconSize} text-blue-600`} />
-            <Droplet className={`${tinyIconSize} text-blue-600`} />
-          </div>
-        </div>
-      );
+      return <WeatherIcons.Rain size={iconSize} />;
     }
     
     // Heavy rain conditions
     if (lowerDesc.includes('kraftig regn') || lowerDesc.includes('heavyrain')) {
-      return (
-        <div className="relative">
-          <Cloud className={`${iconSize} text-blue-600`} />
-          {/* Three droplets */}
-          <div className="absolute -bottom-2 left-0 right-0 flex justify-center gap-1">
-            <Droplet className={`${tinyIconSize} text-blue-600`} />
-            <Droplet className={`${tinyIconSize} text-blue-600`} />
-            <Droplet className={`${tinyIconSize} text-blue-600`} />
-          </div>
-        </div>
-      );
+      return <WeatherIcons.HeavyRain size={iconSize} />;
     }
     
     // Light snow/snow showers conditions
     if (lowerDesc.includes('lett snø') || lowerDesc.includes('lightsnow') || lowerDesc.includes('snøbyger')) {
-      return (
-        <div className="relative">
-          <Cloud className={`${iconSize} text-gray-400`} />
-          {/* Single centered snowflake - dark blue */}
-          <div className="absolute -bottom-1 left-0 right-0 flex justify-center">
-            <div className="text-blue-600 text-xs">❄</div>
-          </div>
-        </div>
-      );
+      return <WeatherIcons.LightSnow size={iconSize} />;
     }
     
     // Regular snow conditions
     if (lowerDesc.includes('snø') || lowerDesc.includes('snow')) {
-      return (
-        <div className="relative">
-          <Cloud className={`${iconSize} text-gray-400`} />
-          {/* Two snowflakes - dark blue */}
-          <div className="absolute -bottom-1 left-0 right-0 flex justify-center gap-0.5">
-            <div className="text-blue-600 text-xs">❄</div>
-            <div className="text-blue-600 text-xs">❄</div>
-          </div>
-        </div>
-      );
+      return <WeatherIcons.Snow size={iconSize} />;
     }
     
     // Heavy snow conditions
     if (lowerDesc.includes('kraftig snø') || lowerDesc.includes('heavysnow')) {
-      return (
-        <div className="relative">
-          <Cloud className={`${iconSize} text-gray-400`} />
-          {/* Three snowflakes - dark blue */}
-          <div className="absolute -bottom-1 left-0 right-0 flex justify-center gap-0.5">
-            <div className="text-blue-600 text-xs">❄</div>
-            <div className="text-blue-600 text-xs">❄</div>
-            <div className="text-blue-600 text-xs">❄</div>
-          </div>
-        </div>
-      );
+      return <WeatherIcons.HeavySnow size={iconSize} />;
     }
     
     // Sleet conditions
     if (lowerDesc.includes('sludd') || lowerDesc.includes('sleet')) {
-      return (
-        <div className="relative">
-          <Cloud className={`${iconSize} text-blue-600`} />
-          {/* Mix of droplet and snowflake */}
-          <div className="absolute -bottom-2 left-0 right-0 flex justify-center items-center gap-0.5">
-            <Droplet className={`${tinyIconSize} text-blue-600 relative top-0.5`} />
-            <div className="text-blue-600 text-xs">❄</div>
-          </div>
-        </div>
-      );
+      return <WeatherIcons.Sleet size={iconSize} />;
     }
     
-    // Fog conditions - ENHANCED
+    // Fog conditions
     if (lowerDesc.includes('tåke') || lowerDesc.includes('fog')) {
-      return (
-        <div className="relative">
-          <Cloud className={`${iconSize} text-gray-400`} />
-          <div className="absolute -bottom-1 left-0 right-0 flex flex-col items-center">
-            <div className="w-3/4 h-px bg-gray-400 mb-0.5"></div>
-            <div className="w-2/3 h-px bg-gray-400 mb-0.5"></div>
-            <div className="w-1/2 h-px bg-gray-400"></div>
-          </div>
-        </div>
-      );
+      return <WeatherIcons.Fog size={iconSize} />;
     }
     
-    // Partly cloudy conditions - ENHANCED
+    // Partly cloudy conditions
     if (lowerDesc.includes('delvis skyet') || lowerDesc.includes('partlycloudy') || lowerDesc.includes('lettskyet') || lowerDesc.includes('fair')) {
-      return (
-        <div className="relative">
-          <Cloud className={`${iconSize} text-gray-400`} />
-          <Sun className={`${smallIconSize} text-yellow-500 absolute -top-1 -right-1`} />
-        </div>
-      );
+      return <WeatherIcons.PartlyCloudy size={iconSize} smallSize={smallIconSize} />;
     }
     
     // Cloudy conditions
     if (lowerDesc.includes('skyet') || lowerDesc.includes('cloudy')) {
-      return <Cloud className={`${iconSize} text-gray-500`} />;
+      return <WeatherIcons.Cloudy size={iconSize} />;
     }
     
     // Default: clear/sunny
-    return <Sun className={`${iconSize} text-yellow-500`} />;
+    return <WeatherIcons.Clear size={iconSize} />;
   };
 
   const getTemperatureColor = (temp: number) => {
@@ -291,8 +213,9 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({
             </CardTitle>
             <WeatherIconsModal trigger={
               <button className="flex items-center text-xs text-gray-500 hover:text-gray-700">
-                <HelpCircle className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Værsymboler</span>
+                <span className="hidden sm:inline">Værsymboler&nbsp;</span>
+                <WeatherIcons.PartlyCloudy size='h-4 w-4 mr-1'/>
+                
               </button>
             } />
           </div>
