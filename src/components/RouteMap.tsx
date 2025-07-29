@@ -132,6 +132,12 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         console.log("Adding weather markers");
         // Add weather point markers
         weatherPoints.forEach((point, index) => {
+          // Skip points where forecast is not available
+          if (!point.forecastAvailable) {
+            console.log(`Skipping weather marker for ${point.location} at ${point.time} - no forecast available`);
+            return;
+          }
+          
           // Determine marker style based on weather conditions
           const lowerDesc = point.description.toLowerCase();
           
@@ -179,25 +185,30 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           const hasStrongWind = point.windSpeed >= 10;
           const hasModerateWind = point.windSpeed >= 6 && point.windSpeed < 10;
           
-          // Create warning messages
+          // Create warning messages - only show warnings if forecast is available
           let warningHTML = '';
-          if (hasThunder || hasHeavyRain || hasStrongWind) {
-            warningHTML = `
-              <div class="mt-2 p-1 bg-red-50 border border-red-300 rounded text-xs text-red-700">
-                <strong>Advarsel:</strong>
-                ${hasThunder ? '<div>• Fare for tordenvær</div>' : ''}
-                ${hasHeavyRain ? '<div>• Kraftig nedbør</div>' : ''}
-                ${hasStrongWind ? `<div>• Sterk vind (${point.windSpeed} m/s)</div>` : ''}
-              </div>
-            `;
-          } else if (hasModerateWind || point.precipitation > 1) {
-            warningHTML = `
-              <div class="mt-2 p-1 bg-yellow-50 border border-yellow-300 rounded text-xs text-yellow-700">
-                <strong>Merknad:</strong>
-                ${point.precipitation > 1 ? `<div>• Nedbør: ${point.precipitation}mm</div>` : ''}
-                ${hasModerateWind ? `<div>• Moderat vind (${point.windSpeed} m/s)</div>` : ''}
-              </div>
-            `;
+          
+          // We already checked forecastAvailable before creating the marker,
+          // but we'll keep the check here for clarity and future-proofing
+          if (point.forecastAvailable) {
+            if (hasThunder || hasHeavyRain || hasStrongWind) {
+              warningHTML = `
+                <div class="mt-2 p-1 bg-red-50 border border-red-300 rounded text-xs text-red-700">
+                  <strong>Advarsel:</strong>
+                  ${hasThunder ? '<div>• Fare for tordenvær</div>' : ''}
+                  ${hasHeavyRain ? '<div>• Kraftig nedbør</div>' : ''}
+                  ${hasStrongWind ? `<div>• Sterk vind (${point.windSpeed} m/s)</div>` : ''}
+                </div>
+              `;
+            } else if (hasModerateWind || point.precipitation > 1) {
+              warningHTML = `
+                <div class="mt-2 p-1 bg-yellow-50 border border-yellow-300 rounded text-xs text-yellow-700">
+                  <strong>Merknad:</strong>
+                  ${point.precipitation > 1 ? `<div>• Nedbør: ${point.precipitation}mm</div>` : ''}
+                  ${hasModerateWind ? `<div>• Moderat vind (${point.windSpeed} m/s)</div>` : ''}
+                </div>
+              `;
+            }
           }
           
           // Add popup with enhanced weather details
