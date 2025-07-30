@@ -21,7 +21,7 @@ export const CloudIcon = ({ color, size }: { color: string, size: string }) => (
 
 // Container for precipitation elements with consistent positioning and spacing
 export const PrecipitationContainer = ({ children }: { children: React.ReactNode }) => (
-  <div className="flex justify-center items-center mt-0.2">
+  <div className="flex justify-center items-center mt-0">
     {children}
   </div>
 );
@@ -48,10 +48,10 @@ export const LightningIcon = ({ size, color }: { size: string, color: string }) 
 
 // Fog lines with consistent styling
 export const FogLines = () => (
-  <div className="flex flex-col items-center mt-0.2 w-full">
+  <div className="flex flex-col items-center mt-0 w-full">
     <div className="w-3/4 h-px bg-gray-400 mb-0.5"></div>
     <div className="w-2/3 h-px bg-gray-400 mb-0.5"></div>
-    <div className="w-1/2 h-px bg-gray-400"></div>
+    <div className="w-3/4 h-px bg-gray-400"></div>
   </div>
 );
 
