@@ -36,6 +36,7 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
   const formSubmittedRef = useRef(false);
   const [formDataLoaded, setFormDataLoaded] = useState(false);
   const [savedFileName, setSavedFileName] = useState<string | null>(null);
+  const [isPlaceholderFile, setIsPlaceholderFile] = useState(false);
 
   // Load form data from localStorage on component mount - this must run BEFORE setting defaults
   useEffect(() => {
@@ -84,6 +85,9 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
           
           // Set the GPX file state to show the route details UI
           setGpxFile(placeholderFile);
+          
+          // Mark this as a placeholder file that needs to be replaced
+          setIsPlaceholderFile(true);
         }
         
         setFormDataLoaded(true);
@@ -240,6 +244,7 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
     setRouteName(name || file.name); // Ensure we always have a route name
     setRouteDistance(distance || null);
     setFormTouched(true); // Mark form as touched when a route is selected
+    setIsPlaceholderFile(false); // This is a real file, not a placeholder
     
     // Save immediately after route selection to ensure route name is saved
     try {
@@ -435,9 +440,9 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={isLoading || !gpxFile || (formTouched && !!dateTimeError)}
+                    disabled={isLoading || !gpxFile || (formTouched && !!dateTimeError) || isPlaceholderFile}
                   >
-                    {isLoading ? 'Henter værdata...' : 'Få værvarsel'}
+                    {isLoading ? 'Henter værdata...' : isPlaceholderFile ? 'Velg rute på nytt for å fortsette' : 'Få værvarsel'}
                   </Button>
                 </form>
               </div>
