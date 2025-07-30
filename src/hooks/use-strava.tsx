@@ -185,6 +185,13 @@ export function useStrava() {
 
   // Initiate Strava login
   const login = useCallback(() => {
+    // Store the current path to redirect back after authentication
+    const currentPath = window.location.pathname;
+    const currentSearch = window.location.search;
+    
+    // Store in sessionStorage to persist through the OAuth redirect flow
+    sessionStorage.setItem('stravaAuthReturnPath', currentPath + currentSearch);
+    
     const authUrl = getStravaAuthUrl();
     window.location.href = authUrl;
   }, []);

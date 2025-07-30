@@ -15,19 +15,27 @@ import { useStrava } from '@/hooks/use-strava';
 interface RouteFormProps {
   onSubmit: (data: RouteData) => void;
   isLoading: boolean;
+  initialTab?: string | null;
 }
 
-export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading }) => {
+export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initialTab }) => {
   const { isAuthenticated, logout, athlete } = useStrava();
   const [gpxFile, setGpxFile] = useState<File | null>(null);
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [duration, setDuration] = useState(0);
-  const [activeTab, setActiveTab] = useState('upload');
+  const [activeTab, setActiveTab] = useState(initialTab || 'upload');
   const [routeName, setRouteName] = useState('');
   const [routeDistance, setRouteDistance] = useState<number | null>(null);
   const [dateTimeError, setDateTimeError] = useState<string | null>(null);
   const [formTouched, setFormTouched] = useState(false);
+  
+  // Update active tab when initialTab changes
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Set default date and time to the nearest future hour
   useEffect(() => {

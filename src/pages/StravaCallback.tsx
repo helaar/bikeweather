@@ -48,9 +48,28 @@ const StravaCallback: React.FC = () => {
         
         if (success) {
           setStatus('success');
-          // Redirect to the main page after a short delay
+          // Redirect after a short delay
           setTimeout(() => {
-            navigate('/');
+            // Check if we have a stored return path
+            const returnPath = sessionStorage.getItem('stravaAuthReturnPath');
+            
+            if (returnPath) {
+              // Clear the stored path
+              sessionStorage.removeItem('stravaAuthReturnPath');
+              
+              // If we're returning to the weather page, ensure the strava tab is active
+              if (returnPath.startsWith('/weather')) {
+                const hasQueryParams = returnPath.includes('?');
+                navigate(hasQueryParams
+                  ? `${returnPath}&tab=strava`
+                  : `${returnPath}?tab=strava`);
+              } else {
+                navigate(returnPath);
+              }
+            } else {
+              // Default fallback to weather page with strava tab
+              navigate('/weather?tab=strava');
+            }
           }, 1500);
         } else {
           setStatus('error');
@@ -99,11 +118,23 @@ const StravaCallback: React.FC = () => {
               </div>
               <h2 className="text-xl font-semibold mb-2">Tilkobling feilet</h2>
               <p className="text-gray-500 text-center">{errorMessage || 'En ukjent feil oppstod.'}</p>
-              <button 
-                onClick={() => navigate('/')}
+              <button
+                onClick={() => {
+                  // Check if we have a stored return path
+                  const returnPath = sessionStorage.getItem('stravaAuthReturnPath');
+                  
+                  if (returnPath) {
+                    // Clear the stored path
+                    sessionStorage.removeItem('stravaAuthReturnPath');
+                    navigate(returnPath);
+                  } else {
+                    // Default fallback to home page
+                    navigate('/');
+                  }
+                }}
                 className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
               >
-                Tilbake til forsiden
+                Tilbake
               </button>
             </>
           )}

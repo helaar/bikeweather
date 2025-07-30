@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { RouteForm } from '@/components/RouteForm';
 import { WeatherDisplay } from '@/components/WeatherDisplay';
 import { RouteMap } from '@/components/RouteMap';
@@ -43,12 +44,23 @@ interface SerializableRouteData {
 }
 
 const WeatherRoute = () => {
+  const location = useLocation();
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherPrediction[] | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<{lat: number, lon: number}[] | null>(null);
   const [routeLength, setRouteLength] = useState<number | null>(null);
   const [avgSpeed, setAvgSpeed] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [initialTab, setInitialTab] = useState<string | null>(null);
+
+  // Check for tab query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam) {
+      setInitialTab(tabParam);
+    }
+  }, [location.search]);
 
   // Load saved state from localStorage on component mount
   useEffect(() => {
@@ -547,7 +559,11 @@ const WeatherRoute = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <div className="space-y-6">
-            <RouteForm onSubmit={handleRouteSubmit} isLoading={isLoading} />
+            <RouteForm
+              onSubmit={handleRouteSubmit}
+              isLoading={isLoading}
+              initialTab={initialTab}
+            />
           </div>
           
           <div className="space-y-6">
