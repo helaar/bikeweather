@@ -392,17 +392,30 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
                       value={duration || ''}
                       onChange={(e) => {
                         setFormTouched(true);
-                        const newDuration = parseInt(e.target.value) || 8;
-                        setDuration(newDuration);
+                        
+                        // Use the input value directly without default fallback
+                        const inputValue = e.target.value;
+                        
+                        // Only parse to number when the input is not empty
+                        if (inputValue === '') {
+                          setDuration(0); // Allow empty input while typing
+                        } else {
+                          const parsedValue = parseInt(inputValue);
+                          // Only use the parsed value if it's a valid number
+                          if (!isNaN(parsedValue)) {
+                            setDuration(parsedValue);
+                          }
+                        }
                         
                         // Save duration immediately when changed
                         try {
                           const currentData = localStorage.getItem('routeFormData');
                           if (currentData) {
                             const parsedData = JSON.parse(currentData);
-                            parsedData.duration = newDuration;
+                            // Store the actual parsed value or 0 if empty
+                            parsedData.duration = inputValue === '' ? 0 : (parseInt(inputValue) || 0);
                             localStorage.setItem('routeFormData', JSON.stringify(parsedData));
-                            console.log('Immediately saved duration:', newDuration);
+                            console.log('Immediately saved duration:', parsedData.duration);
                           }
                         } catch (error) {
                           console.error('Error saving duration:', error);
