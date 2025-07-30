@@ -3,14 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { RouteData } from '@/pages/WeatherRoute';
-import { Upload, Calendar, Clock, MapPin, LogOut, AlertTriangle } from 'lucide-react';
-import { StravaRoutes } from '@/components/StravaRoutes';
-import { StravaAuth } from '@/components/StravaAuth';
-import { StravaIcon } from '@/components/icons/StravaIcon';
-import { useStrava } from '@/hooks/use-strava';
+import { Calendar, Clock, MapPin, AlertTriangle } from 'lucide-react';
+import { RouteSelectionModal } from '@/components/RouteSelectionModal';
 
 interface RouteFormProps {
   onSubmit: (data: RouteData) => void;
@@ -19,23 +14,14 @@ interface RouteFormProps {
 }
 
 export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initialTab }) => {
-  const { isAuthenticated, logout, athlete } = useStrava();
   const [gpxFile, setGpxFile] = useState<File | null>(null);
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [duration, setDuration] = useState(0);
-  const [activeTab, setActiveTab] = useState(initialTab || 'upload');
   const [routeName, setRouteName] = useState('');
   const [routeDistance, setRouteDistance] = useState<number | null>(null);
   const [dateTimeError, setDateTimeError] = useState<string | null>(null);
   const [formTouched, setFormTouched] = useState(false);
-  
-  // Update active tab when initialTab changes
-  useEffect(() => {
-    if (initialTab) {
-      setActiveTab(initialTab);
-    }
-  }, [initialTab]);
 
   // Set default date and time to the nearest future hour
   useEffect(() => {
@@ -112,71 +98,11 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.name.toLowerCase().endsWith('.gpx')) {
-      setGpxFile(file);
-      setRouteName(file.name.replace('.gpx', ''));
-      
-      // Calculate route length from GPX file
-      try {
-        const gpxText = await file.text();
-        const parser = new DOMParser();
-        const gpxDoc = parser.parseFromString(gpxText, 'application/xml');
-        
-        // Extract track points from GPX
-        const trackPoints = Array.from(gpxDoc.querySelectorAll('trkpt')).map(point => ({
-          lat: parseFloat(point.getAttribute('lat') || '0'),
-          lon: parseFloat(point.getAttribute('lon') || '0')
-        }));
-        
-        if (trackPoints.length > 0) {
-          // Calculate route length using Haversine formula
-          let totalDistance = 0;
-          for (let i = 0; i < trackPoints.length - 1; i++) {
-            totalDistance += calculateDistance(
-              trackPoints[i].lat, trackPoints[i].lon,
-              trackPoints[i+1].lat, trackPoints[i+1].lon
-            );
-          }
-          
-          // Convert to meters for consistency with Strava routes
-          setRouteDistance(totalDistance * 1000);
-        } else {
-          setRouteDistance(null);
-        }
-      } catch (error) {
-        console.error('Error calculating route length:', error);
-        setRouteDistance(null);
-      }
-    } else {
-      alert('Vennligst velg en gyldig GPX-fil');
-    }
-  };
-  
-  // Calculate distance between two points using Haversine formula (in kilometers)
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a =
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c; // Distance in km
-  };
-
-  // Handle route selection from Strava
-  const handleStravaRouteSelect = (gpxString: string, name: string, distance?: number) => {
-    // Convert GPX string to File object
-    const blob = new Blob([gpxString], { type: 'application/gpx+xml' });
-    const file = new File([blob], `${name}.gpx`, { type: 'application/gpx+xml' });
-    
+  // Handle route selection from modal
+  const handleRouteSelect = (file: File, name: string, distance?: number) => {
     setGpxFile(file);
     setRouteName(name);
     setRouteDistance(distance || null);
-    setActiveTab('details');
   };
 
   return (
@@ -188,99 +114,50 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="upload" className="flex items-center gap-2">
-              <Upload className="h-4 w-4" />
-              Last opp GPX
-            </TabsTrigger>
-            <TabsTrigger value="strava" className="flex items-center gap-2">
-              <StravaIcon className="h-4 w-4 text-orange-500" />
-              Strava-ruter
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="upload" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="gpxFile" className="flex items-center gap-2">
-                <Upload className="h-4 w-4" />
-                GPX-fil for ruten
-              </Label>
-              <Input
-                id="gpxFile"
-                type="file"
-                accept=".gpx"
-                onChange={handleFileChange}
-                required={activeTab === 'upload'}
+        <div className="space-y-6">
+          {!gpxFile ? (
+            <div className="flex flex-col items-center justify-center py-6 space-y-4">
+              <p className="text-center text-gray-600">
+                Velg en rute for å få værvarsel
+              </p>
+              <RouteSelectionModal
+                onRouteSelect={handleRouteSelect}
+                trigger={
+                  <Button className="w-full">
+                    Velg rute
+                  </Button>
+                }
+                initialTab={initialTab || 'upload'}
               />
-              {gpxFile && activeTab === 'upload' && (
-                <p className="text-sm text-green-600">
-                  Valgt fil: {gpxFile.name}
-                </p>
-              )}
             </div>
-          </TabsContent>
-          
-          <TabsContent value="strava" className="space-y-4">
-            <div className="space-y-4">
-              {/* Show only StravaAuth when not authenticated */}
-              {!isAuthenticated && <StravaAuth />}
-              
-              {/* When authenticated, show both profile with disconnect button and routes */}
-              {isAuthenticated && (
-                <>
-                  {/* Brief profile with disconnect button */}
-                  <Card className="mb-4">
-                    <CardContent className="py-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={athlete?.profile} alt={athlete?.firstname} />
-                            <AvatarFallback className="bg-orange-100 text-orange-800">
-                              {athlete?.firstname?.charAt(0)}{athlete?.lastname?.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{athlete?.firstname} {athlete?.lastname}</p>
-                            <p className="text-xs text-gray-500">Strava-konto tilkoblet</p>
-                          </div>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={logout}
-                          className="text-red-500 hover:text-red-600"
-                        >
-                          <LogOut className="h-4 w-4 mr-2" />
-                          Koble fra
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  {/* Strava routes component */}
-                  <StravaRoutes onRouteSelect={handleStravaRouteSelect} />
-                </>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="details">
-            {gpxFile && (
-              <div className="pt-4">
-                <h3 className="text-lg font-medium mb-4">Turdetaljer</h3>
+          ) : (
+            <div>
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium">Turdetaljer</h3>
+                  <RouteSelectionModal
+                    onRouteSelect={handleRouteSelect}
+                    trigger={
+                      <Button variant="outline" size="sm">
+                        Bytt rute
+                      </Button>
+                    }
+                    initialTab={initialTab || 'upload'}
+                  />
+                </div>
+                
+                {routeName && (
+                  <div className="p-3 bg-blue-50 rounded-md mb-4">
+                    <p className="font-medium">Valgt rute: {routeName}</p>
+                    {routeDistance && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        Rutelengde: {(routeDistance / 1000).toFixed(1)} km
+                      </p>
+                    )}
+                  </div>
+                )}
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {routeName && (
-                    <div className="p-3 bg-blue-50 rounded-md">
-                      <p className="font-medium">Valgt rute: {routeName}</p>
-                      {routeDistance && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          Rutelengde: {(routeDistance / 1000).toFixed(1)} km
-                        </p>
-                      )}
-                    </div>
-                  )}
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -347,20 +224,9 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
                   </Button>
                 </form>
               </div>
-            )}
-          </TabsContent>
-          
-          {gpxFile && activeTab !== 'details' && (
-            <div className="pt-4 border-t">
-              <Button 
-                className="w-full"
-                onClick={() => setActiveTab('details')}
-              >
-                Fortsett til turdetaljer
-              </Button>
             </div>
           )}
-        </Tabs>
+        </div>
       </CardContent>
     </Card>
   );
