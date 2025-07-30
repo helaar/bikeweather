@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +22,7 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
   const [routeDistance, setRouteDistance] = useState<number | null>(null);
   const [dateTimeError, setDateTimeError] = useState<string | null>(null);
   const [formTouched, setFormTouched] = useState(false);
+  const formSubmittedRef = useRef(false);
 
   // Set default date and time to the nearest future hour
   useEffect(() => {
@@ -51,6 +52,32 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
       validateDateTime();
     }
   }, [startDate, startTime, formTouched]);
+  
+  // Prevent browser reload warning when form has unsaved changes
+  useEffect(() => {
+    // Only add the event listener if the form has been touched and not submitted
+    const shouldPreventUnload = formTouched && gpxFile && !formSubmittedRef.current;
+    
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (shouldPreventUnload) {
+        // Standard way to show confirmation dialog
+        e.preventDefault();
+        // For older browsers
+        e.returnValue = '';
+        return '';
+      }
+    };
+    
+    // Add event listener if form has unsaved changes
+    if (shouldPreventUnload) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    }
+    
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [formTouched, gpxFile, formSubmittedRef.current]);
 
   // Function to validate date and time
   const validateDateTime = () => {
@@ -89,6 +116,9 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
     validateDateTime();
     
     if (gpxFile && startDate && startTime && duration > 0 && !dateTimeError) {
+      // Mark form as submitted to prevent reload warning
+      formSubmittedRef.current = true;
+      
       onSubmit({
         gpxFile,
         startDate,
@@ -157,7 +187,7 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
                   </div>
                 )}
                 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
