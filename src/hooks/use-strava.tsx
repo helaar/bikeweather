@@ -186,8 +186,18 @@ export function useStrava() {
   // Initiate Strava login
   const login = useCallback(() => {
     // Store the current path to redirect back after authentication
-    const currentPath = window.location.pathname;
+    // Remove the basename from the path to avoid duplication
+    const basename = import.meta.env.BASE_URL || '/bikeweather';
+    let currentPath = window.location.pathname;
+    
+    // Remove the basename from the path if it exists
+    if (currentPath.startsWith(basename)) {
+      currentPath = currentPath.substring(basename.length) || '/';
+    }
+    
     const currentSearch = window.location.search;
+    
+    console.log('Storing return path:', currentPath + currentSearch);
     
     // Store in sessionStorage to persist through the OAuth redirect flow
     sessionStorage.setItem('stravaAuthReturnPath', currentPath + currentSearch);
