@@ -7,6 +7,17 @@ import { RouteData } from '@/pages/WeatherRoute';
 import { Calendar, Clock, MapPin, AlertTriangle } from 'lucide-react';
 import { RouteSelectionModal } from '@/components/RouteSelectionModal';
 
+// Interface for form data that can be stored in localStorage
+interface StorableFormData {
+  startDate: string;
+  startTime: string;
+  duration: number;
+  routeName: string;
+  routeDistance: number | null;
+  fileName?: string; // Store filename instead of File object
+  hasGpxFile: boolean; // Flag to indicate if a GPX file was selected
+}
+
 interface RouteFormProps {
   onSubmit: (data: RouteData) => void;
   isLoading: boolean;
@@ -17,16 +28,77 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
   const [gpxFile, setGpxFile] = useState<File | null>(null);
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('');
-  const [duration, setDuration] = useState(0);
+  const [duration, setDuration] = useState(8); // Default to 8 hours instead of 0
   const [routeName, setRouteName] = useState('');
   const [routeDistance, setRouteDistance] = useState<number | null>(null);
   const [dateTimeError, setDateTimeError] = useState<string | null>(null);
   const [formTouched, setFormTouched] = useState(false);
   const formSubmittedRef = useRef(false);
+  const [formDataLoaded, setFormDataLoaded] = useState(false);
+  const [savedFileName, setSavedFileName] = useState<string | null>(null);
 
-  // Set default date and time to the nearest future hour
+  // Load form data from localStorage on component mount - this must run BEFORE setting defaults
   useEffect(() => {
-    if (!startDate || !startTime) {
+    try {
+      const savedFormData = localStorage.getItem('routeFormData');
+      
+      if (savedFormData) {
+        console.log('Restoring saved form data from localStorage');
+        
+        const parsedFormData = JSON.parse(savedFormData) as StorableFormData;
+        console.log('Parsed form data:', parsedFormData);
+        
+        // Set form values from localStorage with explicit type checking and defaults
+        if (parsedFormData.startDate) setStartDate(parsedFormData.startDate);
+        if (parsedFormData.startTime) setStartTime(parsedFormData.startTime);
+        
+        // Handle duration specially to ensure it's a number and has a default
+        const parsedDuration = Number(parsedFormData.duration);
+        if (!isNaN(parsedDuration) && parsedDuration > 0) {
+          console.log('Setting duration to:', parsedDuration);
+          setDuration(parsedDuration);
+        } else {
+          console.log('Using default duration (8) because parsed value was invalid:', parsedFormData.duration);
+          setDuration(8); // Default to 8 hours if invalid
+        }
+        
+        if (parsedFormData.routeName) setRouteName(parsedFormData.routeName);
+        if (parsedFormData.routeDistance !== null) setRouteDistance(parsedFormData.routeDistance);
+        
+        // Save the filename to display in the UI
+        if (parsedFormData.fileName) {
+          console.log('Setting saved filename:', parsedFormData.fileName);
+          setSavedFileName(parsedFormData.fileName);
+        }
+        
+        // If we have a filename and the hasGpxFile flag is true, create a placeholder File object
+        if (parsedFormData.hasGpxFile && parsedFormData.fileName) {
+          console.log('Creating placeholder file for:', parsedFormData.fileName);
+          
+          // Create a minimal placeholder File object
+          const placeholderFile = new File(
+            ["placeholder content"],
+            parsedFormData.fileName,
+            { type: "application/gpx+xml" }
+          );
+          
+          // Set the GPX file state to show the route details UI
+          setGpxFile(placeholderFile);
+        }
+        
+        setFormDataLoaded(true);
+        console.log('Form data loaded from localStorage:', parsedFormData);
+      }
+    } catch (error) {
+      console.error('Error restoring form data from localStorage:', error);
+      localStorage.removeItem('routeFormData');
+    }
+  }, []);
+
+  // Set default date and time to the nearest future hour - only if not loaded from localStorage
+  useEffect(() => {
+    // Only set defaults if we don't have data from localStorage and no values set yet
+    if ((!formDataLoaded && (!startDate || !startTime))) {
       const now = new Date();
       
       // Set to the next hour (e.g., 14:00, 15:00)
@@ -43,8 +115,38 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
       
       setStartDate(`${year}-${month}-${day}`);
       setStartTime(`${hours}:${minutes}`);
+      console.log('Set default date and time');
     }
-  }, [startDate, startTime]);
+  }, [startDate, startTime, formDataLoaded]);
+
+  // Save form data to localStorage whenever it changes
+  useEffect(() => {
+    // Don't save if the form has been submitted
+    if (!formSubmittedRef.current) {
+      try {
+        // Ensure duration is a valid number
+        const validDuration = isNaN(Number(duration)) ? 8 : Number(duration);
+        
+        // Create a serializable version of the form data
+        const storableFormData: StorableFormData = {
+          startDate,
+          startTime,
+          duration: validDuration,
+          routeName,
+          routeDistance,
+          fileName: gpxFile?.name || '',
+          hasGpxFile: !!gpxFile
+        };
+        
+        // Debug log to check what's being saved
+        console.log('Saving form data to localStorage:', storableFormData);
+        
+        localStorage.setItem('routeFormData', JSON.stringify(storableFormData));
+      } catch (error) {
+        console.error('Error saving form data to localStorage:', error);
+      }
+    }
+  }, [startDate, startTime, duration, routeName, routeDistance, gpxFile]);
 
   // Validate date and time whenever they change, but only after form is touched
   useEffect(() => {
@@ -103,7 +205,7 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
     }
   };
   
-  // Mark form as touched when user interacts with date or time inputs
+  // Mark form as touched when user interacts with any input
   const handleInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormTouched(true);
     setter(e.target.value);
@@ -119,6 +221,10 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
       // Mark form as submitted to prevent reload warning
       formSubmittedRef.current = true;
       
+      // IKKE fjern data fra localStorage når skjemaet sendes inn
+      // Dette sikrer at dataene beholdes selv om siden lastes på nytt
+      // localStorage.removeItem('routeFormData');
+      
       onSubmit({
         gpxFile,
         startDate,
@@ -131,8 +237,27 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
   // Handle route selection from modal
   const handleRouteSelect = (file: File, name: string, distance?: number) => {
     setGpxFile(file);
-    setRouteName(name);
+    setRouteName(name || file.name); // Ensure we always have a route name
     setRouteDistance(distance || null);
+    setFormTouched(true); // Mark form as touched when a route is selected
+    
+    // Save immediately after route selection to ensure route name is saved
+    try {
+      const storableFormData: StorableFormData = {
+        startDate,
+        startTime,
+        duration,
+        routeName: name || file.name,
+        routeDistance: distance || null,
+        fileName: file.name,
+        hasGpxFile: true
+      };
+      
+      localStorage.setItem('routeFormData', JSON.stringify(storableFormData));
+      console.log('Saved form data after route selection:', storableFormData);
+    } catch (error) {
+      console.error('Error saving form data after route selection:', error);
+    }
   };
 
   return (
@@ -150,6 +275,38 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
               <p className="text-center text-gray-600">
                 Velg en rute for å få værvarsel
               </p>
+              
+              {formDataLoaded && (
+                <div className="p-3 bg-yellow-50 rounded-md mb-2 w-full">
+                  <p className="text-sm text-yellow-700 font-medium">
+                    Turdetaljer ble funnet fra forrige økt
+                  </p>
+                  {routeName && (
+                    <p className="text-sm text-yellow-600 mt-1">
+                      <strong>Rute:</strong> {routeName}
+                    </p>
+                  )}
+                  
+                  {savedFileName && (
+                    <p className="text-sm text-yellow-600">
+                      <strong>Filnavn:</strong> {savedFileName}
+                    </p>
+                  )}
+                  
+                  {startDate && startTime && (
+                    <p className="text-sm text-yellow-600">
+                      <strong>Tid:</strong> {startDate} {startTime}
+                    </p>
+                  )}
+                  <p className="text-sm text-yellow-600">
+                    <strong>Varighet:</strong> {duration} timer
+                  </p>
+                  <p className="text-sm text-yellow-700 mt-2 font-medium">
+                    Vennligst velg ruten på nytt for å fortsette
+                  </p>
+                </div>
+              )}
+              
               <RouteSelectionModal
                 onRouteSelect={handleRouteSelect}
                 trigger={
@@ -233,7 +390,24 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
                       max="24"
                       placeholder="8"
                       value={duration || ''}
-                      onChange={(e) => setDuration(parseInt(e.target.value) || 0)}
+                      onChange={(e) => {
+                        setFormTouched(true);
+                        const newDuration = parseInt(e.target.value) || 8;
+                        setDuration(newDuration);
+                        
+                        // Save duration immediately when changed
+                        try {
+                          const currentData = localStorage.getItem('routeFormData');
+                          if (currentData) {
+                            const parsedData = JSON.parse(currentData);
+                            parsedData.duration = newDuration;
+                            localStorage.setItem('routeFormData', JSON.stringify(parsedData));
+                            console.log('Immediately saved duration:', newDuration);
+                          }
+                        } catch (error) {
+                          console.error('Error saving duration:', error);
+                        }
+                      }}
                       required
                     />
                   </div>
