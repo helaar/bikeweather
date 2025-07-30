@@ -14,8 +14,9 @@ interface StorableFormData {
   duration: number;
   routeName: string;
   routeDistance: number | null;
-  fileName?: string; // Store filename instead of File object
+  fileName?: string; // Store filename
   hasGpxFile: boolean; // Flag to indicate if a GPX file was selected
+  gpxContent?: string; // Store the actual GPX file content as a string
 }
 
 interface RouteFormProps {
@@ -36,7 +37,6 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
   const formSubmittedRef = useRef(false);
   const [formDataLoaded, setFormDataLoaded] = useState(false);
   const [savedFileName, setSavedFileName] = useState<string | null>(null);
-  const [isPlaceholderFile, setIsPlaceholderFile] = useState(false);
 
   // Load form data from localStorage on component mount - this must run BEFORE setting defaults
   useEffect(() => {
@@ -72,22 +72,20 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
           setSavedFileName(parsedFormData.fileName);
         }
         
-        // If we have a filename and the hasGpxFile flag is true, create a placeholder File object
-        if (parsedFormData.hasGpxFile && parsedFormData.fileName) {
-          console.log('Creating placeholder file for:', parsedFormData.fileName);
+        // If we have a filename, gpxContent, and the hasGpxFile flag is true, create a real File object
+        if (parsedFormData.hasGpxFile && parsedFormData.fileName && parsedFormData.gpxContent) {
+          console.log('Creating file from stored content for:', parsedFormData.fileName);
           
-          // Create a minimal placeholder File object
-          const placeholderFile = new File(
-            ["placeholder content"],
+          // Create a real File object with the stored content
+          const fileContent = parsedFormData.gpxContent;
+          const file = new File(
+            [fileContent],
             parsedFormData.fileName,
             { type: "application/gpx+xml" }
           );
           
           // Set the GPX file state to show the route details UI
-          setGpxFile(placeholderFile);
-          
-          // Mark this as a placeholder file that needs to be replaced
-          setIsPlaceholderFile(true);
+          setGpxFile(file);
         }
         
         setFormDataLoaded(true);
@@ -142,10 +140,28 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
           hasGpxFile: !!gpxFile
         };
         
-        // Debug log to check what's being saved
-        console.log('Saving form data to localStorage:', storableFormData);
-        
-        localStorage.setItem('routeFormData', JSON.stringify(storableFormData));
+        // If we have a GPX file, read its content and store it
+        if (gpxFile) {
+          // We need to read the file content asynchronously
+          gpxFile.text().then(content => {
+            // Add the GPX content to the storable data
+            storableFormData.gpxContent = content;
+            
+            // Debug log to check what's being saved
+            console.log('Saving form data with GPX content to localStorage');
+            
+            localStorage.setItem('routeFormData', JSON.stringify(storableFormData));
+          }).catch(error => {
+            console.error('Error reading GPX file content:', error);
+            // Save without the content if there's an error
+            localStorage.setItem('routeFormData', JSON.stringify(storableFormData));
+          });
+        } else {
+          // Debug log to check what's being saved
+          console.log('Saving form data to localStorage (no GPX file)');
+          
+          localStorage.setItem('routeFormData', JSON.stringify(storableFormData));
+        }
       } catch (error) {
         console.error('Error saving form data to localStorage:', error);
       }
@@ -244,22 +260,39 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
     setRouteName(name || file.name); // Ensure we always have a route name
     setRouteDistance(distance || null);
     setFormTouched(true); // Mark form as touched when a route is selected
-    setIsPlaceholderFile(false); // This is a real file, not a placeholder
     
     // Save immediately after route selection to ensure route name is saved
     try {
-      const storableFormData: StorableFormData = {
-        startDate,
-        startTime,
-        duration,
-        routeName: name || file.name,
-        routeDistance: distance || null,
-        fileName: file.name,
-        hasGpxFile: true
-      };
-      
-      localStorage.setItem('routeFormData', JSON.stringify(storableFormData));
-      console.log('Saved form data after route selection:', storableFormData);
+      // Read the file content
+      file.text().then(content => {
+        const storableFormData: StorableFormData = {
+          startDate,
+          startTime,
+          duration,
+          routeName: name || file.name,
+          routeDistance: distance || null,
+          fileName: file.name,
+          hasGpxFile: true,
+          gpxContent: content // Store the actual GPX content
+        };
+        
+        localStorage.setItem('routeFormData', JSON.stringify(storableFormData));
+        console.log('Saved form data with GPX content after route selection');
+      }).catch(error => {
+        console.error('Error reading GPX file content during route selection:', error);
+        // Save without the content if there's an error
+        const storableFormData: StorableFormData = {
+          startDate,
+          startTime,
+          duration,
+          routeName: name || file.name,
+          routeDistance: distance || null,
+          fileName: file.name,
+          hasGpxFile: true
+        };
+        
+        localStorage.setItem('routeFormData', JSON.stringify(storableFormData));
+      });
     } catch (error) {
       console.error('Error saving form data after route selection:', error);
     }
@@ -440,9 +473,9 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={isLoading || !gpxFile || (formTouched && !!dateTimeError) || isPlaceholderFile}
+                    disabled={isLoading || !gpxFile || (formTouched && !!dateTimeError)}
                   >
-                    {isLoading ? 'Henter værdata...' : isPlaceholderFile ? 'Velg rute på nytt for å fortsette' : 'Få værvarsel'}
+                    {isLoading ? 'Henter værdata...' : 'Få værvarsel'}
                   </Button>
                 </form>
               </div>
