@@ -206,7 +206,7 @@ const WeatherRoute = () => {
     setIsLoading(true);
     setRouteData(data);
     
-    // Clear previous data from localStorage when a new route is submitted
+    
     localStorage.removeItem('weatherData');
     localStorage.removeItem('routeCoordinates');
     localStorage.removeItem('routeData');
@@ -583,6 +583,7 @@ const WeatherRoute = () => {
           <div className="space-y-6">
             {weatherData && routeData && (
               <WeatherDisplay
+                key={`weather-${routeData.startDate}-${routeData.startTime}-${routeData.duration}`}
                 weatherData={weatherData}
                 routeData={{
                   ...routeData,
@@ -595,9 +596,10 @@ const WeatherRoute = () => {
           </div>
         </div>
 
-        {routeCoordinates && weatherData && (
+        {routeCoordinates && weatherData && routeData && (
           <div className="w-full">
-            <RouteMap 
+            <RouteMap
+              key={`map-${routeData.startDate}-${routeData.startTime}-${routeData.duration}`}
               routeCoordinates={routeCoordinates}
               weatherPoints={weatherData}
             />
