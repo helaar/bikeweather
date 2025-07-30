@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { Calendar } from 'lucide-react';
+import { Calendar, Settings as SettingsIcon } from 'lucide-react';
 import { StravaIcon } from '@/components/icons/StravaIcon';
 import { YrLogo } from '@/components/icons/YrLogo';
 
@@ -12,6 +12,17 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center p-4">
+      <div className="absolute top-4 right-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/settings')}
+          className="flex items-center gap-2"
+        >
+          <SettingsIcon className="h-4 w-4" />
+          Innstillinger
+        </Button>
+      </div>
       <div className="max-w-2xl mx-auto text-center space-y-8">
         <div className="space-y-4">
           <div className="flex justify-center">

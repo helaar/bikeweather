@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload } from 'lucide-react';
+import { Upload, Settings as SettingsIcon } from 'lucide-react';
 import { StravaIcon } from '@/components/icons/StravaIcon';
 import { StravaRoutes } from '@/components/StravaRoutes';
 import { StravaAuth } from '@/components/StravaAuth';
@@ -22,6 +23,7 @@ export const RouteSelectionModal: React.FC<RouteSelectionModalProps> = ({
   initialTab = 'upload'
 }) => {
   const { isAuthenticated } = useStrava();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [open, setOpen] = useState(false);
   const [gpxFile, setGpxFile] = useState<File | null>(null);
@@ -145,9 +147,25 @@ export const RouteSelectionModal: React.FC<RouteSelectionModalProps> = ({
                 {/* Show only StravaAuth when not authenticated */}
                 {!isAuthenticated && <StravaAuth />}
                 
-                {/* When authenticated, show routes */}
+                {/* When authenticated, show routes and settings link */}
                 {isAuthenticated && (
-                  <StravaRoutes onRouteSelect={handleStravaRouteSelect} />
+                  <>
+                    <div className="flex justify-end mb-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setOpen(false);
+                          navigate('/settings');
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <SettingsIcon className="h-4 w-4" />
+                        Strava-innstillinger
+                      </Button>
+                    </div>
+                    <StravaRoutes onRouteSelect={handleStravaRouteSelect} />
+                  </>
                 )}
               </div>
             </TabsContent>

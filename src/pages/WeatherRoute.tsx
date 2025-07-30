@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { RouteForm } from '@/components/RouteForm';
 import { WeatherDisplay } from '@/components/WeatherDisplay';
 import { RouteMap } from '@/components/RouteMap';
+import { Button } from '@/components/ui/button';
+import { Settings as SettingsIcon } from 'lucide-react';
 
 export interface RouteData {
   gpxFile: File;
@@ -45,6 +47,7 @@ interface SerializableRouteData {
 
 const WeatherRoute = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherPrediction[] | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<{lat: number, lon: number}[] | null>(null);
@@ -548,13 +551,24 @@ const WeatherRoute = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 p-4">
       <div className="max-w-6xl mx-auto">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            Sykkelvær
-          </h1>
-          <p className="text-lg text-gray-600">
-            Værvarsel for sykkelturen
-          </p>
+        <header className="flex justify-between items-center mb-8">
+          <div className="text-center flex-1">
+            <h1 className="text-4xl font-bold text-gray-800 mb-2">
+              Sykkelvær
+            </h1>
+            <p className="text-lg text-gray-600">
+              Værvarsel for sykkelturen
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/settings')}
+            className="flex items-center gap-2"
+          >
+            <SettingsIcon className="h-4 w-4" />
+            Innstillinger
+          </Button>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
