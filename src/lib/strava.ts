@@ -18,7 +18,11 @@ const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token';
 const STRAVA_CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID || '';
 const STRAVA_CLIENT_SECRET = import.meta.env.VITE_STRAVA_CLIENT_SECRET || '';
 // Use the correct path for the callback URL
-const REDIRECT_URI = window.location.origin + import.meta.env.BASE_URL + 'strava-callback';
+// Ensure there's a slash between BASE_URL and 'strava-callback'
+const baseUrl = import.meta.env.BASE_URL || '/';
+const REDIRECT_URI = window.location.origin +
+  (baseUrl.endsWith('/') ? baseUrl : baseUrl + '/') +
+  'strava-callback';
 
 // Log the redirect URI for debugging
 console.log('Strava Redirect URI:', REDIRECT_URI);

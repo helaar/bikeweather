@@ -48,36 +48,11 @@ const StravaCallback: React.FC = () => {
         
         if (success) {
           setStatus('success');
-          // Redirect after a short delay
+          // Redirect after a short delay - always go to weather page with strava tab
           setTimeout(() => {
-            // Check if we have a stored return path
-            const returnPath = sessionStorage.getItem('stravaAuthReturnPath');
-            
-            console.log('Retrieved return path:', returnPath);
-            console.log('Current basename:', import.meta.env.BASE_URL || '/bikeweather');
-            
-            if (returnPath) {
-              // Clear the stored path
-              sessionStorage.removeItem('stravaAuthReturnPath');
-              
-              // If we're returning to the weather page, ensure the strava tab is active
-              if (returnPath.startsWith('/weather')) {
-                const hasQueryParams = returnPath.includes('?');
-                const targetPath = hasQueryParams
-                  ? `${returnPath}&tab=strava`
-                  : `${returnPath}?tab=strava`;
-                
-                console.log('Navigating to weather page with strava tab:', targetPath);
-                navigate(targetPath);
-              } else {
-                console.log('Navigating to return path:', returnPath);
-                navigate(returnPath);
-              }
-            } else {
-              // Default fallback to weather page with strava tab
-              console.log('No return path found, navigating to default weather page');
-              navigate('/weather?tab=strava');
-            }
+            console.log('Authentication successful, redirecting to weather page with strava tab');
+            // Use replace: true to replace the current URL in history
+            navigate('/weather?tab=strava', { replace: true });
           }, 1500);
         } else {
           setStatus('error');
@@ -128,21 +103,8 @@ const StravaCallback: React.FC = () => {
               <p className="text-gray-500 text-center">{errorMessage || 'En ukjent feil oppstod.'}</p>
               <button
                 onClick={() => {
-                  // Check if we have a stored return path
-                  const returnPath = sessionStorage.getItem('stravaAuthReturnPath');
-                  
-                  console.log('Error case - Retrieved return path:', returnPath);
-                  
-                  if (returnPath) {
-                    // Clear the stored path
-                    sessionStorage.removeItem('stravaAuthReturnPath');
-                    console.log('Error case - Navigating to return path:', returnPath);
-                    navigate(returnPath);
-                  } else {
-                    // Default fallback to home page
-                    console.log('Error case - No return path found, navigating to home');
-                    navigate('/');
-                  }
+                  console.log('Authentication failed, redirecting to weather page');
+                  navigate('/weather', { replace: true });
                 }}
                 className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
               >
