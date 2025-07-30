@@ -147,6 +147,14 @@ export function useStrava() {
       const tokenData = await getStravaToken(code);
       saveStravaToken(tokenData);
       
+      // Clear any existing weather data after successful Strava reconnection
+      console.log('Clearing existing weather data after Strava reconnection');
+      localStorage.removeItem('weatherData');
+      localStorage.removeItem('routeCoordinates');
+      localStorage.removeItem('routeData');
+      localStorage.removeItem('routeLength');
+      localStorage.removeItem('avgSpeed');
+      
       setAuthState({
         isAuthenticated: true,
         isLoading: false,
@@ -218,8 +226,8 @@ export function useStrava() {
     });
     
     toast({
-      title: 'Logget ut',
-      description: 'Du er nå logget ut fra Strava',
+      title: 'Frakoblet',
+      description: 'Tilkobling til Strava fjernet.',
       variant: 'default',
     });
   }, [toast]);
