@@ -243,64 +243,90 @@ export const RouteMap: React.FC<RouteMapProps> = ({
    * Calculates the offset position for a weather marker based on surrounding points.
    */
   // This function calculates the direction vector for weather marker positioning
-  // Instead of returning an offset position, it returns a normalized direction vector
-  // that will be used with Leaflet's divIcon positioning
+  // It uses the positions of the point markers before and after the current point
+  // to determine the direction vector, with special handling for start and end points
   const calculateMarkerDirection = (
     point: WeatherPrediction,
     allPoints: WeatherPrediction[],
     pointIndex: number
   ): { dx: number; dy: number } => {
-    // Default direction (pointing east)
-    let dx = 1;
-    let dy = 0;
+    // For the first point (start), position the marker to the left of the route vector
+    if (pointIndex === 0 && allPoints.length > 1) {
+      // Calculate the route direction vector from the first point to the next point
+      const nextPoint = allPoints[1];
+      const routeDirectionDx = nextPoint.lon - point.lon;
+      const routeDirectionDy = nextPoint.lat - point.lat;
+      
+      // Calculate perpendicular vector to the left of the route direction
+      // For a vector (dx, dy), the perpendicular vector to the left is (-dy, dx)
+      const perpDx = -routeDirectionDy;
+      const perpDy = routeDirectionDx;
+      
+      // Normalize the vector
+      const length = Math.sqrt(perpDx * perpDx + perpDy * perpDy);
+      if (length > 0) {
+        return {
+          dx: perpDx / length,
+          dy: perpDy / length
+        };
+      }
+      
+      // Fallback if we can't calculate the vector
+      return { dx: -1, dy: 0 };
+    }
     
-    if (allPoints.length > 1) {
-      if (pointIndex === 0) {
-        // First point - perpendicular to the line to the next point
-        const nextPoint = allPoints[1];
-        const vectorDx = nextPoint.lon - point.lon;
-        const vectorDy = nextPoint.lat - point.lat;
-        
-        // Calculate perpendicular vector (90 degrees rotation)
-        // For a vector (dx, dy), the perpendicular vector is (-dy, dx)
-        dx = -vectorDy;
-        dy = -vectorDx;
-      } else if (pointIndex === allPoints.length - 1) {
-        // Last point - perpendicular to the line from the previous point
-        const prevPoint = allPoints[pointIndex - 1];
-        const vectorDx = point.lon - prevPoint.lon;
-        const vectorDy = point.lat - prevPoint.lat;
-        
-        // Calculate perpendicular vector (90 degrees rotation)
-        dx = -vectorDy;
-        dy = -vectorDx;
-      } else {
-        // Middle points - perpendicular to the average direction
-        const prevPoint = allPoints[pointIndex - 1];
-        const nextPoint = allPoints[pointIndex + 1];
-        
-        // Calculate vectors to previous and next points
-        const dx1 = point.lon - prevPoint.lon;
-        const dy1 = point.lat - prevPoint.lat;
-        const dx2 = nextPoint.lon - point.lon;
-        const dy2 = nextPoint.lat - point.lat;
-        
-        // Average direction
-        const avgDx = (dx1 + dx2) / 2;
-        const avgDy = (dy1 + dy2) / 2;
-        
-        // Use this average direction for perpendicular calculation
-        dx = -avgDy;
-        dy = -avgDx;
+    // For the last point (end), position the marker to the right of the route vector
+    if (pointIndex === allPoints.length - 1 && pointIndex > 0) {
+      // Calculate the route direction vector from the previous point to the last point
+      const prevPoint = allPoints[pointIndex - 1];
+      const routeDirectionDx = point.lon - prevPoint.lon;
+      const routeDirectionDy = point.lat - prevPoint.lat;
+      
+      // Calculate perpendicular vector to the right of the route direction
+      // For a vector (dx, dy), the perpendicular vector to the right is (dy, -dx)
+      const perpDx = routeDirectionDy;
+      const perpDy = -routeDirectionDx;
+      
+      // Normalize the vector
+      const length = Math.sqrt(perpDx * perpDx + perpDy * perpDy);
+      if (length > 0) {
+        return {
+          dx: perpDx / length,
+          dy: perpDy / length
+        };
+      }
+      
+      // Fallback if we can't calculate the vector
+      return { dx: 1, dy: 0 };
+    }
+    
+    // For middle points, position to the left of the route direction vector
+    // Calculate the route direction using the points before and after
+    if (pointIndex > 0 && pointIndex < allPoints.length - 1) {
+      const prevPoint = allPoints[pointIndex - 1];
+      const nextPoint = allPoints[pointIndex + 1];
+      
+      // Calculate the route direction vector from previous to next point
+      const routeDirectionDx = nextPoint.lon - prevPoint.lon;
+      const routeDirectionDy = nextPoint.lat - prevPoint.lat;
+      
+      // Calculate perpendicular vector to the left of the route direction
+      // For a vector (dx, dy), the perpendicular vector to the left is (-dy, dx)
+      const perpDx = -routeDirectionDy;
+      const perpDy = routeDirectionDx;
+      
+      // Normalize the vector
+      const length = Math.sqrt(perpDx * perpDx + perpDy * perpDy);
+      if (length > 0) {
+        return {
+          dx: perpDx / length,
+          dy: perpDy / length
+        };
       }
     }
     
-    // Normalize the vector to get a unit direction
-    const length = Math.sqrt(dx * dx + dy * dy);
-    dx = length > 0 ? dx / length : 1;
-    dy = length > 0 ? dy / length : 0;
-    
-    return { dx, dy };
+    // Fallback if we can't calculate the vector
+    return { dx: -1, dy: 0 };
   };
 
   /**
@@ -544,13 +570,16 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           const direction = calculateMarkerDirection(point, weatherPoints, index);
           
           // Create weather icon marker at the point position but with offset in the HTML
+          // Use a larger offset for start and end points to create more separation
+          const offsetMultiplier = (index === 0 || index === weatherPoints.length - 1) ? 30 : 10;
+          
           const marker = window.L.marker([point.lat, point.lon], {
             icon: window.L.divIcon({
               html: `
                 <div class="weather-marker-container" style="position: relative; width: 0; height: 0;">
                   <div class="weather-marker-content" style="
                     position: absolute;
-                    transform: translate(${direction.dx * 10}px, ${direction.dy * 10}px);
+                    transform: translate(${direction.dx * offsetMultiplier}px, ${direction.dy * offsetMultiplier}px);
                     text-shadow: 0px 0px 3px white, 0px 0px 5px white;
                     line-height: 0.8;
                     text-align: center;
