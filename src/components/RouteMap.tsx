@@ -242,39 +242,40 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   /**
    * Calculates the offset position for a weather marker based on surrounding points.
    */
-  const calculateMarkerOffset = (
+  // This function calculates the direction vector for weather marker positioning
+  // Instead of returning an offset position, it returns a normalized direction vector
+  // that will be used with Leaflet's divIcon positioning
+  const calculateMarkerDirection = (
     point: WeatherPrediction,
     allPoints: WeatherPrediction[],
     pointIndex: number
-  ): { lat: number; lon: number } => {
-    const offsetDistance = -0.1; // Increased offset distance for better separation
-    
-    // Default to the original position
-    let offsetLat = point.lat;
-    let offsetLon = point.lon;
+  ): { dx: number; dy: number } => {
+    // Default direction (pointing east)
+    let dx = 1;
+    let dy = 0;
     
     if (allPoints.length > 1) {
       if (pointIndex === 0) {
-        // First point - offset perpendicular to the line to the next point
+        // First point - perpendicular to the line to the next point
         const nextPoint = allPoints[1];
-        const dx = nextPoint.lon - point.lon;
-        const dy = nextPoint.lat - point.lat;
+        const vectorDx = nextPoint.lon - point.lon;
+        const vectorDy = nextPoint.lat - point.lat;
         
         // Calculate perpendicular vector (90 degrees rotation)
         // For a vector (dx, dy), the perpendicular vector is (-dy, dx)
-        offsetLat = point.lat - dy * offsetDistance;
-        offsetLon = point.lon + dx * offsetDistance;
+        dx = -vectorDy;
+        dy = -vectorDx;
       } else if (pointIndex === allPoints.length - 1) {
-        // Last point - offset perpendicular to the line from the previous point
+        // Last point - perpendicular to the line from the previous point
         const prevPoint = allPoints[pointIndex - 1];
-        const dx = point.lon - prevPoint.lon;
-        const dy = point.lat - prevPoint.lat;
+        const vectorDx = point.lon - prevPoint.lon;
+        const vectorDy = point.lat - prevPoint.lat;
         
         // Calculate perpendicular vector (90 degrees rotation)
-        offsetLat = point.lat - dy * offsetDistance;
-        offsetLon = point.lon + dx * offsetDistance;
+        dx = -vectorDy;
+        dy = -vectorDx;
       } else {
-        // Middle points - offset perpendicular to the average direction
+        // Middle points - perpendicular to the average direction
         const prevPoint = allPoints[pointIndex - 1];
         const nextPoint = allPoints[pointIndex + 1];
         
@@ -288,21 +289,18 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         const avgDx = (dx1 + dx2) / 2;
         const avgDy = (dy1 + dy2) / 2;
         
-        // Normalize the vector
-        const length = Math.sqrt(avgDx * avgDx + avgDy * avgDy);
-        const normDx = length > 0 ? avgDx / length : 0;
-        const normDy = length > 0 ? avgDy / length : 0;
-        
-        // Calculate perpendicular vector (90 degrees rotation)
-        offsetLat = point.lat - normDy * offsetDistance;
-        offsetLon = point.lon + normDx * offsetDistance;
+        // Use this average direction for perpendicular calculation
+        dx = -avgDy;
+        dy = -avgDx;
       }
-    } else {
-      // Only one point - offset to the east (arbitrary direction)
-      offsetLon = point.lon + offsetDistance;
     }
     
-    return { lat: offsetLat, lon: offsetLon };
+    // Normalize the vector to get a unit direction
+    const length = Math.sqrt(dx * dx + dy * dy);
+    dx = length > 0 ? dx / length : 1;
+    dy = length > 0 ? dy / length : 0;
+    
+    return { dx, dy };
   };
 
   /**
@@ -542,35 +540,45 @@ export const RouteMap: React.FC<RouteMapProps> = ({
             fillOpacity: 0.7
           }).addTo(weatherLayer);
           
-          // Calculate offset position using our helper function
-          const markerPosition = calculateMarkerOffset(point, weatherPoints, index);
+          // Calculate direction vector for marker positioning
+          const direction = calculateMarkerDirection(point, weatherPoints, index);
           
-          // Create weather icon marker at the calculated offset position
-          const marker = window.L.marker([markerPosition.lat, markerPosition.lon], {
+          // Create weather icon marker at the point position but with offset in the HTML
+          const marker = window.L.marker([point.lat, point.lon], {
             icon: window.L.divIcon({
               html: `
-                <div class="text-center" style="text-shadow: 0px 0px 3px white, 0px 0px 5px white; line-height: 0.8; position: relative;">
-                  ${point.forecastAvailable ? `
-                    <div style="position: relative; display: inline-block;">
-                      <div style="text-align: center;">
-                        <div class="text-2xl">
-                          ${getWeatherIcon(point.description)}
+                <div class="weather-marker-container" style="position: relative; width: 0; height: 0;">
+                  <div class="weather-marker-content" style="
+                    position: absolute;
+                    transform: translate(${direction.dx * 10}px, ${direction.dy * 10}px);
+                    text-shadow: 0px 0px 3px white, 0px 0px 5px white;
+                    line-height: 0.8;
+                    text-align: center;
+                    pointer-events: auto;
+                    white-space: nowrap;
+                  ">
+                    ${point.forecastAvailable ? `
+                      <div style="position: relative; display: inline-block;">
+                        <div style="text-align: center;">
+                          <div class="text-2xl">
+                            ${getWeatherIcon(point.description)}
+                          </div>
+                          <div style="margin-top: -8px;">
+                            <span class="text-base font-bold">${point.temperature}°</span>
+                          </div>
+                          ${point.windSpeed >= 8 ? `<div class="text-sm font-bold text-red-600 -mt-2">${point.windSpeed} m/s</div>` : ''}
                         </div>
-                        <div style="margin-top: -8px;">
-                          <span class="text-base font-bold">${point.temperature}°</span>
+                        <div style="position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 0px;">
+                          ${createWindArrowSvg(point.windDirection, point.windSpeed)}
                         </div>
-                        ${point.windSpeed >= 8 ? `<div class="text-sm font-bold text-red-600 -mt-2">${point.windSpeed} m/s</div>` : ''}
                       </div>
-                      <div style="position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 0px;">
-                        ${createWindArrowSvg(point.windDirection, point.windSpeed)}
-                      </div>
-                    </div>
-                  ` : ''}
+                    ` : ''}
+                  </div>
                 </div>
               `,
               className: 'weather-marker',
-              iconSize: [50, 50],
-              iconAnchor: [25, 25]  // Center the icon on the actual point
+              iconSize: [1, 1],     // Minimal size since we're using CSS transform
+              iconAnchor: [0, 0]    // Anchor at the exact point position
             })
           }).addTo(weatherLayer);
 
