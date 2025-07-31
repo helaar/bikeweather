@@ -181,8 +181,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
              stroke-linejoin="round"
              style="transform: rotate(${directionDegrees}deg);">
           
-          <line x1="12" y1="19" x2="12" y2="5" stroke="blue" stroke-width="${strokeWidth + 0.5}"></line>
-          <polyline points="5 12 12 5 19 12" stroke="blue" stroke-width="${strokeWidth + 0.5}"></polyline>
+          <line x1="12" y1="5" x2="12" y2="19" stroke="blue" stroke-width="${strokeWidth + 0.5}"></line>
+          <polyline points="5 12 12 19 19 12" stroke="blue" stroke-width="${strokeWidth + 0.5}"></polyline>
         </svg>
     `;
   };
@@ -718,8 +718,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
                    stroke-linejoin="round"
                    style="transform: rotate(${windDirection}deg); filter: drop-shadow(0px 0px 3px white);">
                 <circle cx="12" cy="12" r="10" fill="rgba(255, 255, 255, 0.7)" stroke="blue" />
-                <line x1="12" y1="19" x2="12" y2="5" stroke="blue" stroke-width="${strokeWidth + 1}"></line>
-                <polyline points="5 12 12 5 19 12" stroke="blue" stroke-width="${strokeWidth + 1}"></polyline>
+                <line x1="12" y1="5" x2="12" y2="19" stroke="blue" stroke-width="${strokeWidth + 1}"></line>
+                <polyline points="5 12 12 19 19 12" stroke="blue" stroke-width="${strokeWidth + 1}"></polyline>
               </svg>
             `;
             
