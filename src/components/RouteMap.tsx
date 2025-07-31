@@ -134,6 +134,60 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   };
 
   /**
+   * Creates an SVG for a wind direction arrow
+   */
+  const createWindArrowSvg = (windDirection: string, windSpeed: number): string => {
+    if (windSpeed < 1) return ''; // Skip if wind speed is very low
+    
+    // Try multiple methods to extract the wind direction
+    let directionDegrees = 0;
+    
+    // Method 1: Extract from format "N (45°)" using regex
+    const directionMatch = windDirection.match(/\((\d+)°\)/);
+    if (directionMatch) {
+      directionDegrees = parseInt(directionMatch[1]);
+    }
+    // Method 2: If regex fails, try to extract any number from the string
+    else {
+      const numberMatch = windDirection.match(/\d+/);
+      if (numberMatch) {
+        directionDegrees = parseInt(numberMatch[0]);
+      }
+      // Method 3: If all else fails, try to determine direction from cardinal points
+      else if (windDirection.includes('N') && !windDirection.includes('S')) {
+        directionDegrees = 0;
+      } else if (windDirection.includes('E') || windDirection.includes('Ø')) {
+        directionDegrees = 90;
+      } else if (windDirection.includes('S')) {
+        directionDegrees = 180;
+      } else if (windDirection.includes('W') || windDirection.includes('V')) {
+        directionDegrees = 270;
+      }
+    }
+    
+    // Calculate stroke width based on wind speed
+    const strokeWidth = Math.max(1.5, Math.min(3, windSpeed / 4));
+    
+    // Create a small wind arrow SVG
+    return `
+      <svg xmlns="http://www.w3.org/2000/svg"
+           width="16"
+           height="16"
+             viewBox="0 0 24 24"
+             fill="rgba(0, 0, 255, 0.3)"
+             stroke="blue"
+             stroke-width="${strokeWidth}"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             style="transform: rotate(${directionDegrees}deg);">
+          
+          <line x1="12" y1="19" x2="12" y2="5" stroke="blue" stroke-width="${strokeWidth + 0.5}"></line>
+          <polyline points="5 12 12 5 19 12" stroke="blue" stroke-width="${strokeWidth + 0.5}"></polyline>
+        </svg>
+    `;
+  };
+
+  /**
    * Calculates the bearing (direction) between two geographic points in degrees.
    */
   const calculateBearing = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -362,6 +416,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         }
         weatherLayerRef.current = weatherLayer;
 
+
         // Create route visualization
         if (showWindColoring) {
           console.log("Adding colored route segments based on wind effects");
@@ -494,13 +549,22 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           const marker = window.L.marker([markerPosition.lat, markerPosition.lon], {
             icon: window.L.divIcon({
               html: `
-                <div class="text-center" style="text-shadow: 0px 0px 3px white, 0px 0px 5px white; line-height: 0.8;">
+                <div class="text-center" style="text-shadow: 0px 0px 3px white, 0px 0px 5px white; line-height: 0.8; position: relative;">
                   ${point.forecastAvailable ? `
-                    <div class="text-2xl">
-                      ${getWeatherIcon(point.description)}
+                    <div style="position: relative; display: inline-block;">
+                      <div style="text-align: center;">
+                        <div class="text-2xl">
+                          ${getWeatherIcon(point.description)}
+                        </div>
+                        <div style="margin-top: -8px;">
+                          <span class="text-base font-bold">${point.temperature}°</span>
+                        </div>
+                        ${point.windSpeed >= 8 ? `<div class="text-sm font-bold text-red-600 -mt-2">${point.windSpeed} m/s</div>` : ''}
+                      </div>
+                      <div style="position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 0px;">
+                        ${createWindArrowSvg(point.windDirection, point.windSpeed)}
+                      </div>
                     </div>
-                    <div class="text-base font-bold -mt-2">${point.temperature}°</div>
-                    ${point.windSpeed >= 8 ? `<div class="text-sm font-bold text-red-600 -mt-2">${point.windSpeed} m/s</div>` : ''}
                   ` : ''}
                 </div>
               `,
@@ -587,7 +651,109 @@ export const RouteMap: React.FC<RouteMapProps> = ({
               `}
             </div>
           `, { maxWidth: 300 });
+
         });
+
+        // Function to create wind direction arrow
+        function createWindArrow(point: WeatherPrediction, layer: any, offsetPosition: { lat: number; lon: number }) {
+          try {
+            // Parse wind direction and speed
+            // Try multiple methods to extract the wind direction
+            let windDirection = 0;
+            
+            // Method 1: Extract from format "N (45°)" using regex
+            const directionMatch = point.windDirection.match(/\((\d+)°\)/);
+            if (directionMatch) {
+              windDirection = parseInt(directionMatch[1]);
+            }
+            // Method 2: If regex fails, try to extract any number from the string
+            else {
+              const numberMatch = point.windDirection.match(/\d+/);
+              if (numberMatch) {
+                windDirection = parseInt(numberMatch[0]);
+              }
+              // Method 3: If all else fails, try to determine direction from cardinal points
+              else if (point.windDirection.includes('N') && !point.windDirection.includes('S')) {
+                windDirection = 0;
+              } else if (point.windDirection.includes('E') || point.windDirection.includes('Ø')) {
+                windDirection = 90;
+              } else if (point.windDirection.includes('S')) {
+                windDirection = 180;
+              } else if (point.windDirection.includes('W') || point.windDirection.includes('V')) {
+                windDirection = 270;
+              }
+            }
+            
+            const windSpeed = point.windSpeed;
+            
+            console.log(`Creating wind arrow for ${point.location}: direction=${windDirection}°, speed=${windSpeed} m/s, forecastAvailable=${point.forecastAvailable}, original=${point.windDirection}`);
+            
+            // Skip if wind speed is very low
+            if (windSpeed < 1) return;
+            
+            // Calculate arrow size based on wind speed
+            // Scale from 16px (min) to 30px (max) for wind speeds 1-15 m/s
+            const minSize = 16;
+            const maxSize = 30;
+            const maxWindSpeed = 15; // m/s
+            const size = Math.min(
+              minSize + ((windSpeed - 1) / (maxWindSpeed - 1)) * (maxSize - minSize),
+              maxSize
+            );
+            
+            // Calculate stroke width based on wind speed
+            const strokeWidth = Math.max(2, Math.min(4, windSpeed / 3));
+            
+            // Create an SVG arrow pointing north (0 degrees)
+            // We'll rotate it to match the wind direction
+            const svgArrow = `
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="${size}"
+                   height="${size}"
+                   viewBox="0 0 24 24"
+                   fill="rgba(0, 0, 255, 0.3)"
+                   stroke="blue"
+                   stroke-width="${strokeWidth}"
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   style="transform: rotate(${windDirection}deg); filter: drop-shadow(0px 0px 3px white);">
+                <circle cx="12" cy="12" r="10" fill="rgba(255, 255, 255, 0.7)" stroke="blue" />
+                <line x1="12" y1="19" x2="12" y2="5" stroke="blue" stroke-width="${strokeWidth + 1}"></line>
+                <polyline points="5 12 12 5 19 12" stroke="blue" stroke-width="${strokeWidth + 1}"></polyline>
+              </svg>
+            `;
+            
+            // Create a custom icon for the wind arrow
+            const arrowIcon = window.L.divIcon({
+              html: svgArrow,
+              className: 'wind-arrow-marker',
+              iconSize: [size, size],
+              iconAnchor: [size/2, size/2]
+            });
+            
+            // Calculate a slight offset from the weather marker to create a cluster effect
+            // Position the wind arrow to the right of the weather marker
+            const arrowLat = offsetPosition.lat;
+            const arrowLon = offsetPosition.lon + 0.003; // Slight offset to the right
+            
+            // Create marker with the arrow icon
+            const marker = window.L.marker([arrowLat, arrowLon], {
+              icon: arrowIcon,
+              zIndexOffset: -1000 // Place below other markers
+            }).addTo(layer);
+            
+            // Add tooltip with wind information
+            marker.bindTooltip(`Vind: ${windSpeed} m/s, ${windDirection}°`, {
+              permanent: false,
+              direction: 'top'
+            });
+            
+          } catch (error) {
+            console.error("Error creating wind arrow:", error);
+            return;
+          }
+          
+        }
 
         // Fit map to show entire route
         if (routeLayersRef.current.length > 0) {
@@ -618,6 +784,29 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       }
     };
   }, [routeCoordinates, weatherPoints, leafletLoaded, isExpanded, showWeatherMarkers, showWindColoring]);
+  
+  // Add a key to force re-render when route changes
+  useEffect(() => {
+    console.log("Route coordinates changed, reinitializing map");
+    // Force map reinitialization when route coordinates change
+    if (mapInstanceRef.current) {
+      console.log("Removing existing map instance due to route change");
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+      weatherLayerRef.current = null;
+      routeLayersRef.current = [];
+      defaultRouteLayerRef.current = null;
+      
+      // Force a small delay before setting leafletLoaded to false and back to true
+      // This will trigger the map initialization effect
+      setTimeout(() => {
+        setLeafletLoaded(false);
+        setTimeout(() => {
+          setLeafletLoaded(true);
+        }, 100);
+      }, 100);
+    }
+  }, [routeCoordinates.length > 0 ? routeCoordinates[0].lat + routeCoordinates[0].lon : 0]);
 
   // Add effect for layer visibility changes
   useEffect(() => {
@@ -635,6 +824,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         weatherLayerRef.current.remove();
       }
     }
+    
     
     // Handle route coloring visibility
     if (showWindColoring) {
@@ -731,6 +921,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
             onCheckedChange={() => setShowWindColoring(prev => !prev)}
           />
         </div>
+        
       </div>
     </div>
   );
