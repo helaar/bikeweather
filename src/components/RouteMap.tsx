@@ -186,6 +186,72 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   };
 
   /**
+   * Calculates the offset position for a weather marker based on surrounding points.
+   */
+  const calculateMarkerOffset = (
+    point: WeatherPrediction,
+    allPoints: WeatherPrediction[],
+    pointIndex: number
+  ): { lat: number; lon: number } => {
+    const offsetDistance = -0.1; // Increased offset distance for better separation
+    
+    // Default to the original position
+    let offsetLat = point.lat;
+    let offsetLon = point.lon;
+    
+    if (allPoints.length > 1) {
+      if (pointIndex === 0) {
+        // First point - offset perpendicular to the line to the next point
+        const nextPoint = allPoints[1];
+        const dx = nextPoint.lon - point.lon;
+        const dy = nextPoint.lat - point.lat;
+        
+        // Calculate perpendicular vector (90 degrees rotation)
+        // For a vector (dx, dy), the perpendicular vector is (-dy, dx)
+        offsetLat = point.lat - dy * offsetDistance;
+        offsetLon = point.lon + dx * offsetDistance;
+      } else if (pointIndex === allPoints.length - 1) {
+        // Last point - offset perpendicular to the line from the previous point
+        const prevPoint = allPoints[pointIndex - 1];
+        const dx = point.lon - prevPoint.lon;
+        const dy = point.lat - prevPoint.lat;
+        
+        // Calculate perpendicular vector (90 degrees rotation)
+        offsetLat = point.lat - dy * offsetDistance;
+        offsetLon = point.lon + dx * offsetDistance;
+      } else {
+        // Middle points - offset perpendicular to the average direction
+        const prevPoint = allPoints[pointIndex - 1];
+        const nextPoint = allPoints[pointIndex + 1];
+        
+        // Calculate vectors to previous and next points
+        const dx1 = point.lon - prevPoint.lon;
+        const dy1 = point.lat - prevPoint.lat;
+        const dx2 = nextPoint.lon - point.lon;
+        const dy2 = nextPoint.lat - point.lat;
+        
+        // Average direction
+        const avgDx = (dx1 + dx2) / 2;
+        const avgDy = (dy1 + dy2) / 2;
+        
+        // Normalize the vector
+        const length = Math.sqrt(avgDx * avgDx + avgDy * avgDy);
+        const normDx = length > 0 ? avgDx / length : 0;
+        const normDy = length > 0 ? avgDy / length : 0;
+        
+        // Calculate perpendicular vector (90 degrees rotation)
+        offsetLat = point.lat - normDy * offsetDistance;
+        offsetLon = point.lon + normDx * offsetDistance;
+      }
+    } else {
+      // Only one point - offset to the east (arbitrary direction)
+      offsetLon = point.lon + offsetDistance;
+    }
+    
+    return { lat: offsetLat, lon: offsetLon };
+  };
+
+  /**
    * Interpolates wind data for a point along the route.
    */
   const interpolateWindData = (point: { lat: number; lon: number }): { direction: number; speed: number } => {
@@ -411,19 +477,36 @@ export const RouteMap: React.FC<RouteMapProps> = ({
             windHtml = '';
           }
           
-          // Create marker with appropriate styling (smaller and less dominant)
-          const marker = window.L.marker([point.lat, point.lon], {
+          // Add a small circle marker to indicate the exact point on the route
+          const circleMarker = window.L.circleMarker([point.lat, point.lon], {
+            radius: 2.5,  // Smaller circle marker
+            color: '#000',
+            weight: 1.5,  // Thinner border
+            opacity: 0.7,
+            fillColor: '#fff',
+            fillOpacity: 0.7
+          }).addTo(weatherLayer);
+          
+          // Calculate offset position using our helper function
+          const markerPosition = calculateMarkerOffset(point, weatherPoints, index);
+          
+          // Create weather icon marker at the calculated offset position
+          const marker = window.L.marker([markerPosition.lat, markerPosition.lon], {
             icon: window.L.divIcon({
               html: `
-                <div class="${bgColor} rounded-full p-1 shadow-sm border ${borderColor} text-center">
-                  ${weatherIconHtml}
-                  ${temperatureHtml}
-                  ${windHtml}
+                <div class="text-center" style="text-shadow: 0px 0px 3px white, 0px 0px 5px white; line-height: 0.8;">
+                  ${point.forecastAvailable ? `
+                    <div class="text-2xl">
+                      ${getWeatherIcon(point.description)}
+                    </div>
+                    <div class="text-base font-bold -mt-2">${point.temperature}°</div>
+                    ${point.windSpeed >= 8 ? `<div class="text-sm font-bold text-red-600 -mt-2">${point.windSpeed} m/s</div>` : ''}
+                  ` : ''}
                 </div>
               `,
               className: 'weather-marker',
-              iconSize: [36, 36],
-              iconAnchor: [18, 18]
+              iconSize: [50, 50],
+              iconAnchor: [25, 25]  // Center the icon on the actual point
             })
           }).addTo(weatherLayer);
 
