@@ -275,17 +275,18 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       return { dx: -1, dy: 0 };
     }
     
-    // For the last point (end), position the marker to the right of the route vector
+    // For the last point (end), position the marker to the left of the route vector (same as middle points)
+    // This makes the last point's marker positioning consistent with other points
     if (pointIndex === allPoints.length - 1 && pointIndex > 0) {
       // Calculate the route direction vector from the previous point to the last point
       const prevPoint = allPoints[pointIndex - 1];
       const routeDirectionDx = point.lon - prevPoint.lon;
       const routeDirectionDy = point.lat - prevPoint.lat;
       
-      // Calculate perpendicular vector to the right of the route direction
-      // For a vector (dx, dy), the perpendicular vector to the right is (dy, -dx)
-      const perpDx = routeDirectionDy;
-      const perpDy = -routeDirectionDx;
+      // Calculate perpendicular vector to the left of the route direction
+      // For a vector (dx, dy), the perpendicular vector to the left is (-dy, dx)
+      const perpDx = -routeDirectionDy;
+      const perpDy = routeDirectionDx;
       
       // Normalize the vector
       const length = Math.sqrt(perpDx * perpDx + perpDy * perpDy);
@@ -297,7 +298,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       }
       
       // Fallback if we can't calculate the vector
-      return { dx: 1, dy: 0 };
+      return { dx: -1, dy: 0 };
     }
     
     // For middle points, position to the left of the route direction vector
@@ -575,7 +576,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           
           // Create weather icon marker at the point position but with offset in the HTML
           // Use a larger offset for start and end points to create more separation
-          const offsetMultiplier = (index === 0 || index === weatherPoints.length - 1) ? 30 : 10;
+          const offsetMultiplier = (index === weatherPoints.length - 1) ? -10 : 10;
           
           const marker = window.L.marker([point.lat, point.lon], {
             icon: window.L.divIcon({
