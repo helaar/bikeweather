@@ -23,9 +23,10 @@ interface RouteFormProps {
   onSubmit: (data: RouteData) => void;
   isLoading: boolean;
   initialTab?: string | null;
+  onRouteSelect?: (file: File) => void; // New prop to handle route selection
 }
 
-export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initialTab }) => {
+export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initialTab, onRouteSelect }) => {
   const [gpxFile, setGpxFile] = useState<File | null>(null);
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -260,6 +261,11 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
     setRouteName(name || file.name); // Ensure we always have a route name
     setRouteDistance(distance || null);
     setFormTouched(true); // Mark form as touched when a route is selected
+    
+    // Call the onRouteSelect callback if provided
+    if (onRouteSelect) {
+      onRouteSelect(file);
+    }
     
     // Save immediately after route selection to ensure route name is saved
     try {

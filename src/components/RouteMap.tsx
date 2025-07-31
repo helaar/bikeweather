@@ -435,14 +435,16 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 
         // Create layer group for weather markers
         const weatherLayer = window.L.layerGroup();
-        if (showWeatherMarkers) {
+        // Only add weather layer to map if we have weather data and showWeatherMarkers is true
+        if (showWeatherMarkers && weatherPoints.length > 0) {
           weatherLayer.addTo(map);
         }
         weatherLayerRef.current = weatherLayer;
 
 
         // Create route visualization
-        if (showWindColoring) {
+        // Only use wind coloring if we have weather data
+        if (showWindColoring && weatherPoints.length > 0) {
           console.log("Adding colored route segments based on wind effects");
           routeLayersRef.current = [];
           
@@ -503,9 +505,11 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           defaultRouteLayerRef.current = routeLine;
         }
 
-        console.log("Adding weather markers");
-        // Add weather point markers to the weather layer
-        weatherPoints.forEach((point, index) => {
+        // Only add weather markers if we have weather data
+        if (weatherPoints.length > 0) {
+          console.log("Adding weather markers");
+          // Add weather point markers to the weather layer
+          weatherPoints.forEach((point, index) => {
           // Determine marker style based on weather conditions
           let borderColor = 'border-blue-500'; // Default border color
           let bgColor = 'bg-white/70'; // Semi-transparent background
@@ -689,7 +693,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
             </div>
           `, { maxWidth: 300 });
 
-        });
+          });
+        }
 
         // Function to create wind direction arrow
         function createWindArrow(point: WeatherPrediction, layer: any, offsetPosition: { lat: number; lon: number }) {
@@ -853,9 +858,9 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     saveMapPreference('weatherMarkers', showWeatherMarkers);
     saveMapPreference('windColoring', showWindColoring);
     
-    // Handle weather markers visibility
+    // Handle weather markers visibility - only show if we have weather data
     if (weatherLayerRef.current) {
-      if (showWeatherMarkers) {
+      if (showWeatherMarkers && weatherPoints.length > 0) {
         weatherLayerRef.current.addTo(mapInstanceRef.current);
       } else {
         weatherLayerRef.current.remove();
@@ -863,8 +868,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     }
     
     
-    // Handle route coloring visibility
-    if (showWindColoring) {
+    // Handle route coloring visibility - only use wind coloring if we have weather data
+    if (showWindColoring && weatherPoints.length > 0) {
       // Show colored segments
       if (defaultRouteLayerRef.current) {
         defaultRouteLayerRef.current.remove();
@@ -897,7 +902,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         defaultRouteLayerRef.current = routeLine;
       }
     }
-  }, [showWeatherMarkers, showWindColoring, routeCoordinates]);
+  }, [showWeatherMarkers, showWindColoring, routeCoordinates, weatherPoints.length]);
 
   // Add Leaflet CSS and JS
   useEffect(() => {

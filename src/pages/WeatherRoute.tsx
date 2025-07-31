@@ -206,6 +206,8 @@ const WeatherRoute = () => {
     setIsLoading(true);
     setRouteData(data);
     
+    // Clear existing weather data and route display
+    setWeatherData(null);
     
     localStorage.removeItem('weatherData');
     localStorage.removeItem('routeCoordinates');
@@ -577,6 +579,38 @@ const WeatherRoute = () => {
               onSubmit={handleRouteSubmit}
               isLoading={isLoading}
               initialTab={initialTab}
+              onRouteSelect={async (file) => {
+                try {
+                  // Clear existing weather data
+                  setWeatherData(null);
+                  
+                  // Parse GPX file to get coordinates
+                  const gpxText = await file.text();
+                  const parser = new DOMParser();
+                  const gpxDoc = parser.parseFromString(gpxText, 'application/xml');
+                  
+                  // Extract track points from GPX
+                  const trackPoints = Array.from(gpxDoc.querySelectorAll('trkpt')).map(point => ({
+                    lat: parseFloat(point.getAttribute('lat') || '0'),
+                    lon: parseFloat(point.getAttribute('lon') || '0')
+                  }));
+                  
+                  if (trackPoints.length === 0) {
+                    console.error('No track points found in GPX file');
+                    return;
+                  }
+                  
+                  // Set route coordinates to display the route on the map
+                  setRouteCoordinates(trackPoints);
+                  
+                  // Calculate route length
+                  const length = calculateRouteLength(trackPoints);
+                  setRouteLength(length);
+                  
+                } catch (error) {
+                  console.error('Error processing route:', error);
+                }
+              }}
             />
           </div>
           
@@ -596,12 +630,12 @@ const WeatherRoute = () => {
           </div>
         </div>
 
-        {routeCoordinates && weatherData && routeData && (
+        {routeCoordinates && (
           <div className="w-full">
             <RouteMap
-              key={`map-${routeData.startDate}-${routeData.startTime}-${routeData.duration}`}
+              key={`map-${routeCoordinates.length}`}
               routeCoordinates={routeCoordinates}
-              weatherPoints={weatherData}
+              weatherPoints={weatherData || []}
             />
           </div>
         )}

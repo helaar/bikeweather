@@ -35,6 +35,9 @@ export const RouteSelectionModal: React.FC<RouteSelectionModalProps> = ({
       setGpxFile(file);
       setRouteName(file.name.replace('.gpx', ''));
       
+      // Clear existing weather data from localStorage when selecting a new route
+      localStorage.removeItem('weatherData');
+      
       // Calculate route length from GPX file
       try {
         const gpxText = await file.text();
@@ -97,6 +100,9 @@ export const RouteSelectionModal: React.FC<RouteSelectionModalProps> = ({
     // Convert GPX string to File object
     const blob = new Blob([gpxString], { type: 'application/gpx+xml' });
     const file = new File([blob], `${name}.gpx`, { type: 'application/gpx+xml' });
+    
+    // Clear existing weather data from localStorage when selecting a new route
+    localStorage.removeItem('weatherData');
     
     // Close the modal and pass the file to the parent component
     setOpen(false);

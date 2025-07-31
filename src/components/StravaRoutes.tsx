@@ -129,6 +129,9 @@ const handleRouteSelect = async (route: StravaRoute) => {
     
     console.log(`Selecting Strava route: ${route.name} (ID: ${route.id})`);
     
+    // Clear existing weather data from localStorage when selecting a new route
+    localStorage.removeItem('weatherData');
+    
     // First try: Use the summary_polyline from the route list if available
     if (route.map && route.map.summary_polyline) {
       try {
