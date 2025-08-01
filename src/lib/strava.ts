@@ -343,8 +343,14 @@ export const saveStravaToken = (tokenData: StravaTokenResponse): boolean => {
     localStorage.setItem(STRAVA_TOKEN_STORAGE_KEY, JSON.stringify(tokenToStore));
     localStorage.setItem(STRAVA_ATHLETE_STORAGE_KEY, JSON.stringify(tokenData.athlete));
     
-    console.log('Strava token saved successfully. Expires at:',
-      new Date(tokenData.expires_at * 1000).toLocaleString());
+    console.log('Strava token saved successfully:', {
+      expiresAt: new Date(tokenData.expires_at * 1000).toLocaleString(),
+      athlete: tokenData.athlete,
+      storageKeys: {
+        token: STRAVA_TOKEN_STORAGE_KEY,
+        athlete: STRAVA_ATHLETE_STORAGE_KEY
+      }
+    });
     return true;
   } catch (error) {
     console.error('Failed to save Strava token to localStorage:', error);
@@ -355,14 +361,19 @@ export const saveStravaToken = (tokenData: StravaTokenResponse): boolean => {
 // Get token from local storage with enhanced error handling
 export const getStoredStravaToken = (): StoredStravaToken | null => {
   try {
+    console.log('Attempting to retrieve Strava token from localStorage...');
     const tokenData = localStorage.getItem(STRAVA_TOKEN_STORAGE_KEY);
-    if (!tokenData) return null;
+    
+    if (!tokenData) {
+      console.log('No token data found in localStorage');
+      return null;
+    }
     
     const parsedToken = JSON.parse(tokenData) as StoredStravaToken;
     
     // Validate parsed token
     if (!parsedToken.access_token || !parsedToken.refresh_token || !parsedToken.expires_at) {
-      console.error('Retrieved invalid token data from localStorage');
+      console.error('Retrieved invalid token data from localStorage:', parsedToken);
       return null;
     }
     
@@ -370,6 +381,11 @@ export const getStoredStravaToken = (): StoredStravaToken | null => {
     if (!parsedToken.stored_at) {
       parsedToken.stored_at = Math.floor(Date.now() / 1000) - 3600; // Assume stored 1 hour ago
     }
+    
+    console.log('Retrieved valid Strava token:', {
+      expiresAt: new Date(parsedToken.expires_at * 1000).toLocaleString(),
+      storedAt: new Date(parsedToken.stored_at * 1000).toLocaleString()
+    });
     
     return parsedToken;
   } catch (error) {

@@ -145,7 +145,19 @@ export function useStrava() {
     
     try {
       const tokenData = await getStravaToken(code);
-      saveStravaToken(tokenData);
+      const saveSuccess = saveStravaToken(tokenData);
+      
+      if (!saveSuccess) {
+        throw new Error('Failed to save token to storage');
+      }
+
+      // Verify token was actually saved
+      const storedToken = getStoredStravaToken();
+      if (!storedToken) {
+        throw new Error('Token verification failed after save');
+      }
+
+      console.log('Token successfully saved and verified');
       
       // Clear any existing weather data after successful Strava reconnection
       console.log('Clearing existing weather data after Strava reconnection');
@@ -154,6 +166,9 @@ export function useStrava() {
       localStorage.removeItem('routeData');
       localStorage.removeItem('routeLength');
       localStorage.removeItem('avgSpeed');
+      
+      // Add small delay to ensure state is fully updated
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       setAuthState({
         isAuthenticated: true,

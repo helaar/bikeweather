@@ -43,11 +43,18 @@ const StravaCallback: React.FC = () => {
           return;
         }
 
-        // Exchange the code for an access token
+        // Exchange the code for an access token with detailed logging
+        console.log('Starting token exchange with Strava...');
         const success = await handleAuthCallback(code);
         
         if (success) {
           setStatus('success');
+          console.log('Token exchange successful, verifying token storage...');
+          
+          // Verify token was saved to localStorage
+          const storedToken = localStorage.getItem('strava_token');
+          console.log('Stored token exists:', !!storedToken);
+          
           // Redirect after a short delay - always go to weather page with strava tab
           setTimeout(() => {
             console.log('Authentication successful, redirecting to weather page with strava tab');
