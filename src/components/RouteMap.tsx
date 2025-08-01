@@ -7,6 +7,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MapLayers } from '@/types/map-layers';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { offsetLatLngByPixels, perpendicularAngle } from '@/lib/markerUtils';
 
 interface RouteMapProps {
   routeCoordinates: { lat: number; lon: number }[];
@@ -21,6 +22,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const [mapReady, setMapReady] = useState(false);
   const weatherLayerRef = useRef<any>(null);
   const routeLayersRef = useRef<any[]>([]);
   const defaultRouteLayerRef = useRef<any>(null);
@@ -262,17 +264,12 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       const perpDx = -routeDirectionDy;
       const perpDy = routeDirectionDx;
       
-      // Normalize the vector
-      const length = Math.sqrt(perpDx * perpDx + perpDy * perpDy);
-      if (length > 0) {
-        return {
-          dx: perpDx / length,
-          dy: perpDy / length
-        };
-      }
       
-      // Fallback if we can't calculate the vector
-      return { dx: -1, dy: 0 };
+      return {
+        dx: perpDx,
+        dy: perpDy
+      };
+    
     }
     
     // For the last point (end), position the marker to the left of the route vector (same as middle points)
@@ -285,20 +282,14 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       
       // Calculate perpendicular vector to the left of the route direction
       // For a vector (dx, dy), the perpendicular vector to the left is (-dy, dx)
-      const perpDx = -routeDirectionDy;
-      const perpDy = routeDirectionDx;
+      const perpDx = routeDirectionDx;
+      const perpDy = routeDirectionDy;
       
-      // Normalize the vector
-      const length = Math.sqrt(perpDx * perpDx + perpDy * perpDy);
-      if (length > 0) {
-        return {
-          dx: perpDx / length,
-          dy: perpDy / length
-        };
-      }
       
-      // Fallback if we can't calculate the vector
-      return { dx: -1, dy: 0 };
+      return {
+        dx: perpDx ,
+        dy: perpDy 
+      };
     }
     
     // For middle points, position to the left of the route direction vector
@@ -316,14 +307,12 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       const perpDx = -routeDirectionDy;
       const perpDy = routeDirectionDx;
       
-      // Normalize the vector
-      const length = Math.sqrt(perpDx * perpDx + perpDy * perpDy);
-      if (length > 0) {
-        return {
-          dx: perpDx / length,
-          dy: perpDy / length
-        };
-      }
+      
+      return {
+        dx: perpDx ,
+        dy: perpDy 
+      };
+    
     }
     
     // Fallback if we can't calculate the vector
@@ -427,7 +416,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         const map = window.L.map(mapRef.current).setView([
           routeCoordinates[0].lat,
           routeCoordinates[0].lon
-        ], 10);
+        ], 10, { animate: false });
 
         // Add tile layer
         window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -483,10 +472,10 @@ export const RouteMap: React.FC<RouteMapProps> = ({
             routeLayersRef.current.push(segmentLine);
             
             // Add tooltip showing wind information on hover
-            const windEffectText = 
-              windEffect === 'headwind' ? 'Motvind' : 
-              windEffect === 'tailwind' ? 'Medvind' : 
-              windEffect === 'crosswind' ? 'Sidevind' : 
+            const windEffectText =
+              windEffect === 'headwind' ? 'Motvind' :
+              windEffect === 'tailwind' ? 'Medvind' :
+              windEffect === 'crosswind' ? 'Sidevind' :
               'Svak vind';
             
             segmentLine.bindTooltip(`${windEffectText}: ${Math.round(windData.speed)} m/s`, {
@@ -506,304 +495,106 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           defaultRouteLayerRef.current = routeLine;
         }
 
-        // Only add weather markers if we have weather data
-        if (weatherPoints.length > 0) {
-          console.log("Adding weather markers");
-          // Add weather point markers to the weather layer
+        // Værmarkører og punktmarkører (med pikselbasert offset og popup)
+        let markerRefs: any[] = [];
+        if (showWeatherMarkers && weatherPoints.length > 0) {
           weatherPoints.forEach((point, index) => {
-          // Determine marker style based on weather conditions
-          let borderColor = 'border-blue-500'; // Default border color
-          let bgColor = 'bg-white/70'; // Semi-transparent background
-          let weatherIconHtml = '';
-          let temperatureHtml = '';
-          let windHtml = '';
-          
-          if (point.forecastAvailable) {
-            const lowerDesc = point.description.toLowerCase();
-            
-            // Set border color based on weather severity
-            // Severe weather conditions (thunder, heavy rain, strong wind)
-            if (lowerDesc.includes('torden') ||
-                lowerDesc.includes('kraftig') ||
-                lowerDesc.includes('heavy') ||
-                point.windSpeed >= 10) {
-              borderColor = 'border-red-500';
-              bgColor = 'bg-red-50/80';
+            // Punktmarkør på selve rute-punktet
+            const circleMarker = window.L.circleMarker([point.lat, point.lon], {
+              radius: 3,
+              color: '#000',
+              weight: 1.5,
+              opacity: 0.7,
+              fillColor: '#fff',
+              fillOpacity: 0.7
+            }).addTo(weatherLayer);
+
+            // Finn vinkelrett retning på ruten for dette punktet
+            let from, to;
+            if (index === 0 && weatherPoints.length > 1) {
+              from = window.L.latLng(point.lat, point.lon);
+              to = window.L.latLng(weatherPoints[1].lat, weatherPoints[1].lon);
+            } else if (index === weatherPoints.length - 1 && index > 0) {
+              from = window.L.latLng(weatherPoints[index - 1].lat, weatherPoints[index - 1].lon);
+              to = window.L.latLng(point.lat, point.lon);
+            } else if (index > 0 && index < weatherPoints.length - 1) {
+              from = window.L.latLng(weatherPoints[index - 1].lat, weatherPoints[index - 1].lon);
+              to = window.L.latLng(weatherPoints[index + 1].lat, weatherPoints[index + 1].lon);
+            } else {
+              from = to = window.L.latLng(point.lat, point.lon);
             }
-            // Moderate weather conditions (regular rain, snow)
-            else if (lowerDesc.includes('regn') ||
-                     lowerDesc.includes('rain') ||
-                     lowerDesc.includes('snø') ||
-                     lowerDesc.includes('snow') ||
-                     point.windSpeed >= 6) {
-              borderColor = 'border-yellow-500';
-              bgColor = 'bg-yellow-50/80';
-            }
-            
-            // Weather icon based on conditions
-            weatherIconHtml = `<div class="text-sm">${getWeatherIcon(point.description)}</div>`;
-            
-            // Temperature display
-            temperatureHtml = `<div class="text-xs font-semibold">${point.temperature}°</div>`;
-            
-            // Wind display for strong winds
-            windHtml = point.windSpeed >= 8 ? `<div class="text-xs text-red-600">${point.windSpeed} m/s</div>` : '';
-          } else {
-            // For unavailable forecasts, use gray styling
-            borderColor = point.timeHasPassed ? 'border-gray-400' : 'border-amber-400';
-            bgColor = point.timeHasPassed ? 'bg-gray-100/80' : 'bg-amber-50/80';
-            
-            // Use clock icon for past times, alert triangle for unavailable forecasts
-            weatherIconHtml = `<div class="text-sm">${point.timeHasPassed ? '🕒' : '⚠️'}</div>`;
-            
-            // No temperature or wind display for unavailable forecasts
-            temperatureHtml = '';
-            windHtml = '';
-          }
-          
-          // Add a small circle marker to indicate the exact point on the route
-          const circleMarker = window.L.circleMarker([point.lat, point.lon], {
-            radius: 2.5,  // Smaller circle marker
-            color: '#000',
-            weight: 1.5,  // Thinner border
-            opacity: 0.7,
-            fillColor: '#fff',
-            fillOpacity: 0.7
-          }).addTo(weatherLayer);
-          
-          // Calculate direction vector for marker positioning
-          const direction = calculateMarkerDirection(point, weatherPoints, index);
-          
-          // Create weather icon marker at the point position but with offset in the HTML
-          // Use a larger offset for start and end points to create more separation
-          const offsetMultiplier = (index === weatherPoints.length - 1) ? -10 : 10;
-          
-          const marker = window.L.marker([point.lat, point.lon], {
-            icon: window.L.divIcon({
-              html: `
-                <div class="weather-marker-container" style="position: relative; width: 0; height: 0;">
-                  <div class="weather-marker-content" style="
-                    position: absolute;
-                    transform: translate(${direction.dx * offsetMultiplier}px, ${direction.dy * offsetMultiplier}px);
-                    text-shadow: 0px 0px 3px white, 0px 0px 5px white;
-                    line-height: 0.8;
-                    text-align: center;
-                    pointer-events: auto;
-                    white-space: nowrap;
-                  ">
-                    ${point.forecastAvailable ? `
-                      <div style="position: relative; display: inline-block;">
-                        <div style="text-align: center;">
-                          <div class="text-2xl">
-                            ${getWeatherIcon(point.description)}
+            const perpAngle = perpendicularAngle(from, to);
+            const pixelOffset = 10 * ((index === weatherPoints.length - 1) ? -1 : 1);
+            const baseLatLng = window.L.latLng(point.lat, point.lon);
+            const basePoint = map.latLngToContainerPoint(baseLatLng);
+            const offsetPoint = basePoint.add([
+              Math.cos(perpAngle) * pixelOffset,
+              Math.sin(perpAngle) * pixelOffset,
+            ]);
+            const markerLatLng = map.containerPointToLatLng(offsetPoint);
+
+            // Værmarkør på offset-posisjonen
+            const marker = window.L.marker(markerLatLng, {
+              icon: window.L.divIcon({
+                html: `
+                  <div class="weather-marker-container" style="position: relative; width: 0; height: 0;">
+                    <div class="weather-marker-content weather-marker-${index}" style="
+                      position: absolute;
+                      text-shadow: 0px 0px 3px white, 0px 0px 5px white;
+                      line-height: 0.8;
+                      text-align: center;
+                      pointer-events: auto;
+                      white-space: nowrap;
+                    ">
+                      ${point.forecastAvailable ? `
+                        <div style="position: relative; display: inline-block;">
+                          <div style="text-align: center;">
+                            <div class="text-2xl">
+                              ${getWeatherIcon(point.description)}
+                            </div>
+                            <div style="margin-top: -8px;">
+                              <span class="text-base font-bold">${point.temperature}°</span>
+                            </div>
                           </div>
-                          <div style="margin-top: -8px;">
-                            <span class="text-base font-bold">${point.temperature}°</span>
+                          <div style="position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 0px;">
+                            ${createWindArrowSvg(point.windDirection, point.windSpeed)}
                           </div>
-                          ${point.windSpeed >= 8 ? `<div class="text-sm font-bold text-red-600 -mt-2">${point.windSpeed} m/s</div>` : ''}
                         </div>
-                        <div style="position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 0px;">
-                          ${createWindArrowSvg(point.windDirection, point.windSpeed)}
-                        </div>
-                      </div>
-                    ` : ''}
+                      ` : ''}
+                    </div>
                   </div>
-                </div>
-              `,
-              className: 'weather-marker',
-              iconSize: [1, 1],     // Minimal size since we're using CSS transform
-              iconAnchor: [0, 0]    // Anchor at the exact point position
-            })
-          }).addTo(weatherLayer);
+                `,
+                className: 'weather-marker',
+                iconSize: [10, 10],
+                iconAnchor: [0, 0],
+              }),
+            }).addTo(weatherLayer);
 
-          // Determine if there are any weather warnings to show
-          let warningHTML = '';
-          
-          if (point.forecastAvailable) {
-            const hasThunder = point.description.toLowerCase().includes('torden');
-            const hasHeavyRain = point.description.toLowerCase().includes('kraftig regn') ||
-                                point.description.toLowerCase().includes('heavyrain');
-            const hasStrongWind = point.windSpeed >= 10;
-            const hasModerateWind = point.windSpeed >= 6 && point.windSpeed < 10;
-            
-            if (hasThunder || hasHeavyRain || hasStrongWind) {
-              warningHTML = `
-                <div class="mt-2 p-1 bg-red-50 border border-red-300 rounded text-xs text-red-700">
-                  <strong>Advarsel:</strong>
-                  ${hasThunder ? '<div>• Fare for tordenvær</div>' : ''}
-                  ${hasHeavyRain ? '<div>• Kraftig nedbør</div>' : ''}
-                  ${hasStrongWind ? `<div>• Sterk vind (${point.windSpeed} m/s)</div>` : ''}
-                </div>
-              `;
-            } else if (hasModerateWind || point.precipitation > 1) {
-              warningHTML = `
-                <div class="mt-2 p-1 bg-yellow-50 border border-yellow-300 rounded text-xs text-yellow-700">
-                  <strong>Merknad:</strong>
-                  ${point.precipitation > 1 ? `<div>• Nedbør: ${point.precipitation}mm</div>` : ''}
-                  ${hasModerateWind ? `<div>• Moderat vind (${point.windSpeed} m/s)</div>` : ''}
-                </div>
-              `;
-            }
-          } else {
-            // Add a notice for unavailable forecasts
-            warningHTML = `
-              <div class="mt-2 p-1 ${point.timeHasPassed ? 'bg-gray-50 border border-gray-300 text-gray-700' : 'bg-amber-50 border border-amber-300 text-amber-700'} rounded text-xs">
-                <strong>${point.timeHasPassed ? 'Merknad:' : 'Advarsel:'}</strong>
-                <div>${point.timeHasPassed ? 'Tidspunktet har passert' : 'Værvarsel ikke tilgjengelig'}</div>
-              </div>
-            `;
-          }
-          
-          // Add popup with enhanced weather details
-          marker.bindPopup(`
-            <div class="p-2">
-              <h3 class="font-semibold text-sm">${point.location}</h3>
-              <p class="text-xs text-gray-600">Kl. ${point.time}</p>
-              
-              ${warningHTML}
-              
-              ${point.forecastAvailable ? `
-                <div class="mt-2 space-y-1">
-                  <div class="flex justify-between text-xs">
-                    <span>Temperatur:</span>
-                    <span class="font-semibold">${point.temperature}°C</span>
-                    ${Math.abs(point.temperature - point.feelsLike) >= 2 ?
-                      `<span class="text-xs text-gray-500">(Føles som ${point.feelsLike}°C)</span>` : ''}
-                  </div>
-                  <div class="flex justify-between text-xs">
-                    <span>Nedbør:</span>
-                    <span class="font-semibold">${point.precipitation}mm</span>
-                  </div>
-                  <div class="flex justify-between text-xs">
-                    <span>Vind:</span>
-                    <span class="font-semibold ${point.windSpeed >= 8 ? 'text-red-600' : ''}">${point.windSpeed} m/s ${point.windDirection}</span>
-                  </div>
-                  <div class="flex justify-between text-xs">
-                    <span>Luftfuktighet:</span>
-                    <span class="font-semibold">${point.humidity}%</span>
-                  </div>
-                  <div class="text-xs text-center mt-2 font-medium">
-                    ${point.description}
-                  </div>
-                </div>
-              ` : `
-                <div class="p-3 text-center ${point.timeHasPassed ? "text-gray-600" : "text-amber-600"}">
-                  <p class="mt-2">${point.timeHasPassed ? "Tidspunktet har passert" : "Ingen værdata tilgjengelig for dette tidspunktet"}</p>
-                </div>
-              `}
-            </div>
-          `, { maxWidth: 300 });
-
-          });
-        }
-
-        // Function to create wind direction arrow
-        function createWindArrow(point: WeatherPrediction, layer: any, offsetPosition: { lat: number; lon: number }) {
-          try {
-            // Parse wind direction and speed
-            // Try multiple methods to extract the wind direction
-            let windDirection = 0;
-            
-            // Method 1: Extract from format "N (45°)" using regex
-            const directionMatch = point.windDirection.match(/\((\d+)°\)/);
-            if (directionMatch) {
-              windDirection = parseInt(directionMatch[1]);
-            }
-            // Method 2: If regex fails, try to extract any number from the string
-            else {
-              const numberMatch = point.windDirection.match(/\d+/);
-              if (numberMatch) {
-                windDirection = parseInt(numberMatch[0]);
-              }
-              // Method 3: If all else fails, try to determine direction from cardinal points
-              else if (point.windDirection.includes('N') && !point.windDirection.includes('S')) {
-                windDirection = 0;
-              } else if (point.windDirection.includes('E') || point.windDirection.includes('Ø')) {
-                windDirection = 90;
-              } else if (point.windDirection.includes('S')) {
-                windDirection = 180;
-              } else if (point.windDirection.includes('W') || point.windDirection.includes('V')) {
-                windDirection = 270;
-              }
-            }
-            
-            const windSpeed = point.windSpeed;
-            
-            console.log(`Creating wind arrow for ${point.location}: direction=${windDirection}°, speed=${windSpeed} m/s, forecastAvailable=${point.forecastAvailable}, original=${point.windDirection}`);
-            
-            // Skip if wind speed is very low
-            if (windSpeed < 1) return;
-            
-            // Calculate arrow size based on wind speed
-            // Scale from 16px (min) to 30px (max) for wind speeds 1-15 m/s
-            const minSize = 16;
-            const maxSize = 30;
-            const maxWindSpeed = 15; // m/s
-            const size = Math.min(
-              minSize + ((windSpeed - 1) / (maxWindSpeed - 1)) * (maxSize - minSize),
-              maxSize
+            // Legg til popup på værmarkøren (åpnes ved klikk)
+            marker.bindPopup(
+              `<div style="min-width:120px">
+                <strong>${point.location || ""}</strong><br/>
+                ${point.time ? `Kl. ${point.time}<br/>` : ""}
+                ${point.forecastAvailable ? `
+                  <span>${point.description}</span><br/>
+                  <span>Temp: <b>${point.temperature}°C</b></span><br/>
+                  <span>Vind: <b>${point.windSpeed} m/s ${point.windDirection}</b></span>
+                ` : `<span>Ingen værdata</span>`}
+              </div>`,
+              { maxWidth: 250 }
             );
-            
-            // Calculate stroke width based on wind speed
-            const strokeWidth = Math.max(2, Math.min(4, windSpeed / 3));
-            
-            // Create an SVG arrow pointing north (0 degrees)
-            // We'll rotate it to match the wind direction
-            const svgArrow = `
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="${size}"
-                   height="${size}"
-                   viewBox="0 0 24 24"
-                   fill="rgba(0, 0, 255, 0.3)"
-                   stroke="blue"
-                   stroke-width="${strokeWidth}"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   style="transform: rotate(${windDirection}deg); filter: drop-shadow(0px 0px 3px white);">
-                <circle cx="12" cy="12" r="10" fill="rgba(255, 255, 255, 0.7)" stroke="blue" />
-                <line x1="12" y1="5" x2="12" y2="19" stroke="blue" stroke-width="${strokeWidth + 1}"></line>
-                <polyline points="5 12 12 19 19 12" stroke="blue" stroke-width="${strokeWidth + 1}"></polyline>
-              </svg>
-            `;
-            
-            // Create a custom icon for the wind arrow
-            const arrowIcon = window.L.divIcon({
-              html: svgArrow,
-              className: 'wind-arrow-marker',
-              iconSize: [size, size],
-              iconAnchor: [size/2, size/2]
-            });
-            
-            // Calculate a slight offset from the weather marker to create a cluster effect
-            // Position the wind arrow to the right of the weather marker
-            const arrowLat = offsetPosition.lat;
-            const arrowLon = offsetPosition.lon + 0.003; // Slight offset to the right
-            
-            // Create marker with the arrow icon
-            const marker = window.L.marker([arrowLat, arrowLon], {
-              icon: arrowIcon,
-              zIndexOffset: -1000 // Place below other markers
-            }).addTo(layer);
-            
-            // Add tooltip with wind information
-            marker.bindTooltip(`Vind: ${windSpeed} m/s, ${windDirection}°`, {
-              permanent: false,
-              direction: 'top'
-            });
-            
-          } catch (error) {
-            console.error("Error creating wind arrow:", error);
-            return;
-          }
-          
+
+            markerRefs.push(marker);
+            markerRefs.push(circleMarker);
+          });
         }
 
         // Fit map to show entire route
         if (routeLayersRef.current.length > 0) {
           const bounds = window.L.latLngBounds(routeCoordinates.map(coord => [coord.lat, coord.lon]));
-          map.fitBounds(bounds, { padding: [20, 20] });
+          map.fitBounds(bounds, { padding: [20, 20], animate: false });
         } else if (defaultRouteLayerRef.current) {
-          map.fitBounds(defaultRouteLayerRef.current.getBounds(), { padding: [20, 20] });
+          map.fitBounds(defaultRouteLayerRef.current.getBounds(), { padding: [20, 20], animate: false });
         }
         
         // Force a map redraw
@@ -812,7 +603,12 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         }, 100);
 
         mapInstanceRef.current = map;
+        // Vent til kartet har fått en "moveend" event etter init
+        map.once("moveend", () => setMapReady(true));
         console.log("Map initialization complete");
+
+        // Cleanup for markører
+        map._weatherMarkerRefs = markerRefs;
       } catch (error) {
         console.error("Error initializing map:", error);
       }
@@ -821,6 +617,11 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     // Cleanup
     return () => {
       if (mapInstanceRef.current) {
+        // Fjern alle værmarkører og punktmarkører
+        if (mapInstanceRef.current._weatherMarkerRefs) {
+          mapInstanceRef.current._weatherMarkerRefs.forEach((m: any) => m.remove && m.remove());
+          mapInstanceRef.current._weatherMarkerRefs = null;
+        }
         console.log("Cleanup: removing map instance");
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
