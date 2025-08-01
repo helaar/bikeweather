@@ -639,6 +639,8 @@ const WeatherRoute = () => {
               key={`map-${routeCoordinates.length}`}
               routeCoordinates={routeCoordinates}
               weatherPoints={weatherData || []}
+              routeName={routeData?.gpxFile?.name.replace('.gpx', '')}
+              routeDistance={routeLength ? routeLength * 1000 : undefined}
             />
           </div>
         )}

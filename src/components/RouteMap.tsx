@@ -13,12 +13,16 @@ interface RouteMapProps {
   routeCoordinates: { lat: number; lon: number }[];
   weatherPoints: WeatherPrediction[];
   initialLayers?: MapLayers; // Optional prop for initial layer visibility
+  routeName?: string;
+  routeDistance?: number;
 }
 
-export const RouteMap: React.FC<RouteMapProps> = ({ 
-  routeCoordinates, 
+export const RouteMap: React.FC<RouteMapProps> = ({
+  routeCoordinates,
   weatherPoints,
-  initialLayers
+  initialLayers,
+  routeName,
+  routeDistance
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -913,10 +917,22 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
-          <MapPin className="h-5 w-5" />
-          Turen på kartet
-        </CardTitle>
+        <div className="flex flex-col gap-1">
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            {routeName || 'Turen på kartet'}
+          </CardTitle>
+          {routeName && (
+            <div className="text-sm text-gray-600">
+              <span className="font-medium">Distanse:</span>
+              {routeDistance && (
+                <span className="ml-2">
+                  {(routeDistance / 1000).toFixed(1)} km
+                </span>
+              )}
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {isMobile && (
             <Button
