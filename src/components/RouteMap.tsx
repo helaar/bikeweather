@@ -418,6 +418,18 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           routeCoordinates[0].lon
         ], 10, { animate: false });
 
+        // Create panes with proper z-index ordering
+        if (!map.getPane('windPane')) {
+          map.createPane('windPane');
+          map.getPane('windPane').style.zIndex = 600;
+        }
+        if (!map.getPane('weatherPane')) {
+          map.createPane('weatherPane');
+          map.getPane('weatherPane').style.zIndex = 700;
+        }
+        // Ensure markerPane has highest z-index
+        map.getPane('markerPane').style.zIndex = 800;
+
         // Add tile layer
         window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors'
@@ -465,7 +477,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
             const segmentLine = window.L.polyline(segmentLatLngs, {
               color: color,
               weight: 4,
-              opacity: 0.8
+              opacity: 0.8,
+              pane: 'windPane'
             }).addTo(map);
             
             // Add to route layers ref for later toggling
@@ -506,7 +519,9 @@ export const RouteMap: React.FC<RouteMapProps> = ({
               weight: 1.5,
               opacity: 0.7,
               fillColor: '#fff',
-              fillOpacity: 0.7
+              fillOpacity: 0.7,
+              pane: 'weatherPane',
+              zIndexOffset: 1000
             }).addTo(weatherLayer);
 
             // Finn vinkelrett retning på ruten for dette punktet
@@ -568,6 +583,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
                 iconSize: [10, 10],
                 iconAnchor: [0, 0],
               }),
+              zIndexOffset: 1000,
+              pane: 'weatherPane'
             }).addTo(weatherLayer);
 
             // Legg til popup på værmarkøren (åpnes ved klikk)
@@ -627,7 +644,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         mapInstanceRef.current = null;
       }
     };
-  }, [routeCoordinates, weatherPoints, leafletLoaded, isExpanded, showWeatherMarkers, showWindColoring]);
+  }, [routeCoordinates, leafletLoaded, isExpanded, weatherPoints]);
   
   // Add a key to force re-render when route changes
   useEffect(() => {
@@ -652,59 +669,186 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     }
   }, [routeCoordinates.length > 0 ? routeCoordinates[0].lat + routeCoordinates[0].lon : 0]);
 
-  // Add effect for layer visibility changes
+  // Toggle weather markers (værmarkører og punktmarkører) uten å re-initialisere kartet
+  useEffect(() => {
+    if (!mapInstanceRef.current || !weatherLayerRef.current) return;
+    // Fjern gamle markører
+    if (mapInstanceRef.current._weatherMarkerRefs) {
+      mapInstanceRef.current._weatherMarkerRefs.forEach((m: any) => m.remove && m.remove());
+      mapInstanceRef.current._weatherMarkerRefs = null;
+    }
+    let markerRefs: any[] = [];
+    if (showWeatherMarkers && weatherPoints.length > 0) {
+      console.log("weatherPoints.length", weatherPoints.length, weatherPoints);
+      weatherPoints.forEach((point, index) => {
+        // Punktmarkør på selve rute-punktet
+        const circleMarker = window.L.circleMarker([point.lat, point.lon], {
+          radius: 3,
+          color: '#000',
+          weight: 1.5,
+          opacity: 0.7,
+          fillColor: '#fff',
+          fillOpacity: 0.7,
+          pane: 'weatherPane',
+          zIndexOffset: 1000
+        }).addTo(weatherLayerRef.current);
+        // Sørg for at alle markører i laget ligger øverst
+        if (weatherLayerRef.current && weatherLayerRef.current.eachLayer) {
+          weatherLayerRef.current.eachLayer((layer: any) => {
+            if (layer.bringToFront) layer.bringToFront();
+          });
+        }
+
+        // Finn vinkelrett retning på ruten for dette punktet
+        let from, to;
+        if (index === 0 && weatherPoints.length > 1) {
+          from = window.L.latLng(point.lat, point.lon);
+          to = window.L.latLng(weatherPoints[1].lat, weatherPoints[1].lon);
+        } else if (index === weatherPoints.length - 1 && index > 0) {
+          from = window.L.latLng(weatherPoints[index - 1].lat, weatherPoints[index - 1].lon);
+          to = window.L.latLng(point.lat, point.lon);
+        } else if (index > 0 && index < weatherPoints.length - 1) {
+          from = window.L.latLng(weatherPoints[index - 1].lat, weatherPoints[index - 1].lon);
+          to = window.L.latLng(weatherPoints[index + 1].lat, weatherPoints[index + 1].lon);
+        } else {
+          from = to = window.L.latLng(point.lat, point.lon);
+        }
+        const perpAngle = perpendicularAngle(from, to);
+        const pixelOffset = 10 * ((index === weatherPoints.length - 1) ? -1 : 1);
+        const baseLatLng = window.L.latLng(point.lat, point.lon);
+        const basePoint = mapInstanceRef.current.latLngToContainerPoint(baseLatLng);
+        const offsetPoint = basePoint.add([
+          Math.cos(perpAngle) * pixelOffset,
+          Math.sin(perpAngle) * pixelOffset,
+        ]);
+        const markerLatLng = mapInstanceRef.current.containerPointToLatLng(offsetPoint);
+
+        // Værmarkør på offset-posisjonen
+        const marker = window.L.marker(markerLatLng, {
+          icon: window.L.divIcon({
+            html: `
+              <div class="weather-marker-container" style="position: relative; width: 0; height: 0;">
+                <div class="weather-marker-content weather-marker-${index}" style="
+                  position: absolute;
+                  text-shadow: 0px 0px 3px white, 0px 0px 5px white;
+                  line-height: 0.8;
+                  text-align: center;
+                  pointer-events: auto;
+                  white-space: nowrap;
+                ">
+                  ${point.forecastAvailable ? `
+                    <div style="position: relative; display: inline-block;">
+                      <div style="text-align: center;">
+                        <div class="text-2xl">
+                          ${getWeatherIcon(point.description)}
+                        </div>
+                        <div style="margin-top: -8px;">
+                          <span class="text-base font-bold">${point.temperature}°</span>
+                        </div>
+                      </div>
+                      <div style="position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 0px;">
+                        ${createWindArrowSvg(point.windDirection, point.windSpeed)}
+                      </div>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            `,
+            className: 'weather-marker',
+            iconSize: [10, 10],
+            iconAnchor: [0, 0],
+          }),
+          pane: 'weatherPane',
+          zIndexOffset: 1000
+        }).addTo(weatherLayerRef.current);
+
+        // Legg til popup på værmarkøren (åpnes ved klikk)
+        marker.bindPopup(
+          `<div style="min-width:120px">
+            <strong>${point.location || ""}</strong><br/>
+            ${point.time ? `Kl. ${point.time}<br/>` : ""}
+            ${point.forecastAvailable ? `
+              <span>${point.description}</span><br/>
+              <span>Temp: <b>${point.temperature}°C</b></span><br/>
+              <span>Vind: <b>${point.windSpeed} m/s ${point.windDirection}</b></span>
+            ` : `<span>Ingen værdata</span>`}
+          </div>`,
+          { maxWidth: 250 }
+        );
+
+        markerRefs.push(marker);
+        markerRefs.push(circleMarker);
+      });
+    }
+    mapInstanceRef.current._weatherMarkerRefs = markerRefs;
+    // Sørg for at alle markører i laget ligger øverst etter at ALLE er lagt til
+    if (weatherLayerRef.current && weatherLayerRef.current.eachLayer) {
+      weatherLayerRef.current.eachLayer((layer: any) => {
+        if (layer.bringToFront) layer.bringToFront();
+      });
+    }
+  }, [showWeatherMarkers, weatherPoints, mapInstanceRef.current]);
+
+  // Toggle wind coloring (vindfarger) uten å re-initialisere kartet
   useEffect(() => {
     if (!mapInstanceRef.current) return;
-    
-    // Save preferences
-    saveMapPreference('weatherMarkers', showWeatherMarkers);
-    saveMapPreference('windColoring', showWindColoring);
-    
-    // Handle weather markers visibility - only show if we have weather data
-    if (weatherLayerRef.current) {
-      if (showWeatherMarkers && weatherPoints.length > 0) {
-        weatherLayerRef.current.addTo(mapInstanceRef.current);
-      } else {
-        weatherLayerRef.current.remove();
-      }
+    // Fjern gamle rute-lag
+    if (routeLayersRef.current) {
+      routeLayersRef.current.forEach((layer: any) => layer.remove && layer.remove());
+      routeLayersRef.current = [];
     }
-    
-    
-    // Handle route coloring visibility - only use wind coloring if we have weather data
+    if (defaultRouteLayerRef.current) {
+      defaultRouteLayerRef.current.remove && defaultRouteLayerRef.current.remove();
+      defaultRouteLayerRef.current = null;
+    }
     if (showWindColoring && weatherPoints.length > 0) {
-      // Show colored segments
-      if (defaultRouteLayerRef.current) {
-        defaultRouteLayerRef.current.remove();
-        defaultRouteLayerRef.current = null;
-      }
-      
-      routeLayersRef.current.forEach(layer => {
-        if (!layer._map) {
-          layer.addTo(mapInstanceRef.current);
-        }
-      });
-    } else {
-      // Show default route
-      routeLayersRef.current.forEach(layer => {
-        layer.remove();
-      });
-      
-      if (defaultRouteLayerRef.current) {
-        if (!defaultRouteLayerRef.current._map) {
-          defaultRouteLayerRef.current.addTo(mapInstanceRef.current);
-        }
-      } else if (routeCoordinates.length > 0 && mapInstanceRef.current) {
-        // Create default route if it doesn't exist
-        const routeLatLngs = routeCoordinates.map(coord => [coord.lat, coord.lon]);
-        const routeLine = window.L.polyline(routeLatLngs, {
-          color: '#3b82f6',
+      for (let i = 0; i < routeCoordinates.length - 1; i++) {
+        const start = routeCoordinates[i];
+        const end = routeCoordinates[i + 1];
+        const bearing = calculateBearing(start.lat, start.lon, end.lat, end.lon);
+        const midpoint = {
+          lat: (start.lat + end.lat) / 2,
+          lon: (start.lon + end.lon) / 2
+        };
+        const windData = interpolateWindData(midpoint);
+        const windEffect = getWindEffect(windData.direction, bearing, windData.speed);
+        const color = getWindEffectColor(windEffect, windData.speed);
+        const segmentLatLngs = [[start.lat, start.lon], [end.lat, end.lon]];
+        const segmentLine = window.L.polyline(segmentLatLngs, {
+          color: color,
           weight: 4,
           opacity: 0.8
-        }).addTo(mapInstanceRef.current);
-        defaultRouteLayerRef.current = routeLine;
+        , pane: 'windPane' }).addTo(mapInstanceRef.current);
+        routeLayersRef.current.push(segmentLine);
+        const windEffectText =
+          windEffect === 'headwind' ? 'Motvind' :
+          windEffect === 'tailwind' ? 'Medvind' :
+          windEffect === 'crosswind' ? 'Sidevind' :
+          'Svak vind';
+        segmentLine.bindTooltip(`${windEffectText}: ${Math.round(windData.speed)} m/s`, {
+          permanent: false,
+          direction: 'top'
+        });
       }
+    } else {
+      // Default rute
+      const routeLatLngs = routeCoordinates.map(coord => [coord.lat, coord.lon]);
+      const routeLine = window.L.polyline(routeLatLngs, {
+        color: '#3b82f6',
+        weight: 4,
+        opacity: 0.8
+      , pane: 'windPane' }).addTo(mapInstanceRef.current);
+      defaultRouteLayerRef.current = routeLine;
     }
-  }, [showWeatherMarkers, showWindColoring, routeCoordinates, weatherPoints.length]);
+  // Etter at vindfargede ruter er lagt til, sørg for at værmarkører ligger øverst
+  if (mapInstanceRef.current && mapInstanceRef.current._layers) {
+    Object.values(mapInstanceRef.current._layers).forEach((layer: any) => {
+      if (layer.options && layer.options.pane === 'markerPane' && layer.bringToFront) {
+        layer.bringToFront();
+      }
+    });
+  }
+  }, [showWindColoring, weatherPoints, routeCoordinates]);
 
   // Add Leaflet CSS and JS
   useEffect(() => {
