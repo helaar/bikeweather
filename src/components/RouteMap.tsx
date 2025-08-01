@@ -560,7 +560,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
                       ${point.forecastAvailable ? `
                         <div style="position: relative; display: inline-block;">
                           <div style="text-align: center;">
-                            <div class="text-2xl">
+                            <div class="text-2xl" style="text-shadow: 0 0 4px white, 0 0 8px white; background-color: rgba(255,255,255,0.3); border-radius: 50%; padding: 2px;">
                               ${getWeatherIcon(point.description)}
                             </div>
                             <div style="margin-top: -8px;">
