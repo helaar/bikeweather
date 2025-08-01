@@ -19,21 +19,12 @@ const STRAVA_CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID || '';
 const STRAVA_CLIENT_SECRET = import.meta.env.VITE_STRAVA_CLIENT_SECRET || '';
 // Use the correct path for the callback URL
 // Ensure there's a slash between BASE_URL and 'strava-callback'
-// Debug log environment variables
-console.log('Environment variables:', {
-  MODE: import.meta.env.MODE,
-  IS_GITHUB_PAGES: import.meta.env.IS_GITHUB_PAGES,
-  BASE_URL: import.meta.env.BASE_URL
-});
+// Always use the full production URL for Strava callback
+const REDIRECT_URI = 'https://helaar.github.io/bikeweather/strava-callback';
 
-// Use hardcoded GitHub Pages URL since environment detection isn't reliable
-const isProduction = import.meta.env.MODE === 'production';
-const REDIRECT_URI = isProduction
-  ? 'https://helaar.github.io/bikeweather/strava-callback'
-  : window.location.origin + '/strava-callback';
-
-console.log('Using callback URL:', REDIRECT_URI);
-console.log('Strava Redirect URI:', REDIRECT_URI);
+// Log the callback URL for verification
+console.log('Strava Callback URL:', REDIRECT_URI);
+console.log('Current environment:', window.location.href);
 
 // Log the redirect URI for debugging
 console.log('Strava Redirect URI:', REDIRECT_URI);
