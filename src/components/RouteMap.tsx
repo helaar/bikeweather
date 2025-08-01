@@ -567,7 +567,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
                               <span class="text-base font-bold">${point.temperature}°</span>
                             </div>
                           </div>
-                          <div style="position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 0px;">
+                          <div style="position: absolute; left: 80%; top: 50%; transform: translateY(-50%); margin-left: -8px;">
                             ${createWindArrowSvg(point.windDirection, point.windSpeed)}
                           </div>
                         </div>
@@ -742,7 +742,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
                           <span class="text-base font-bold">${point.temperature}°</span>
                         </div>
                       </div>
-                      <div style="position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 0px;">
+                      <div style="position: absolute; left: 80%; top: 50%; transform: translateY(-50%); margin-left: -8px;">
                         ${createWindArrowSvg(point.windDirection, point.windSpeed)}
                       </div>
                     </div>
