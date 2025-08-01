@@ -258,9 +258,12 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
   // Handle route selection from modal
   const handleRouteSelect = (file: File, name: string, distance?: number) => {
     setGpxFile(file);
-    setRouteName(name || file.name); // Ensure we always have a route name
+    setRouteName(name || file.name.replace('.gpx', '')); // Ensure we always have a route name and remove .gpx extension
     setRouteDistance(distance || null);
     setFormTouched(true); // Mark form as touched when a route is selected
+    
+    // Clear any existing date/time errors when selecting new route
+    setDateTimeError(null);
     
     // Call the onRouteSelect callback if provided
     if (onRouteSelect) {

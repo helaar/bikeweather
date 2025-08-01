@@ -208,6 +208,9 @@ const WeatherRoute = () => {
     
     // Clear existing weather data and route display
     setWeatherData(null);
+    setRouteCoordinates(null);
+    setRouteLength(null);
+    setAvgSpeed(null);
     
     localStorage.removeItem('weatherData');
     localStorage.removeItem('routeCoordinates');
