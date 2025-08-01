@@ -167,25 +167,21 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       }
     }
     
-    // Calculate stroke width based on wind speed
-    const strokeWidth = Math.max(1.5, Math.min(3, windSpeed / 4));
-    
-    // Create a small wind arrow SVG
+    // Create a simple arrow symbol SVG
     return `
       <svg xmlns="http://www.w3.org/2000/svg"
-           width="16"
-           height="16"
-             viewBox="0 0 24 24"
-             fill="rgba(0, 0, 255, 0.3)"
-             stroke="blue"
-             stroke-width="${strokeWidth}"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             style="transform: rotate(${directionDegrees}deg);">
-          
-          <line x1="12" y1="5" x2="12" y2="19" stroke="blue" stroke-width="${strokeWidth + 0.5}"></line>
-          <polyline points="5 12 12 19 19 12" stroke="blue" stroke-width="${strokeWidth + 0.5}"></polyline>
-        </svg>
+           width="24"
+           height="24"
+           viewBox="0 0 24 24"
+           style="transform: rotate(${directionDegrees}deg);">
+        <text x="12" y="20"
+              text-anchor="middle"
+              font-size="20"
+              font-weight="900"
+              fill="black"
+              stroke="black"
+              stroke-width="2">↓</text>
+      </svg>
     `;
   };
 

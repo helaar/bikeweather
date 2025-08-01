@@ -46,6 +46,20 @@ export const LightningIcon = ({ size, color }: { size: string, color: string }) 
   <CloudLightning className={`${size} ${color}`} />
 );
 
+// Wind direction arrow with rotation
+export const WindArrow = ({ degrees, size = "h-4 w-4", color = "text-gray-600" }: {
+  degrees: number,
+  size?: string,
+  color?: string
+}) => (
+  <span
+    className={`${size} ${color} inline-block`}
+    style={{ transform: `rotate(${degrees}deg)` }}
+  >
+    ↓
+  </span>
+);
+
 // Fog lines with consistent styling
 export const FogLines = () => (
   <div className="flex flex-col items-center mt-0 w-full">
