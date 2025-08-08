@@ -36,5 +36,5 @@ export function perpendicularAngle(from: LatLng, to: LatLng): number {
   // Vinkel på ruten
   const routeAngle = Math.atan2(dy, dx);
   // Vinkelrett til venstre (90 grader)
-  return routeAngle - Math.PI / 2;
+  return routeAngle + Math.PI / 2; // Changed from - to + to ensure consistent behavior
 }

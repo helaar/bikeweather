@@ -67,6 +67,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   const [showWindColoring, setShowWindColoring] = useState(
     initialLayers?.windColoring ?? loadMapPreference('windColoring', true)
   );
+  const [showDebugLayer, setShowDebugLayer] = useState(false);
 
   // Toggle expanded/collapsed state
   const toggleExpanded = () => {
@@ -92,7 +93,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     
     // Thunderstorm conditions
     if (lowerDesc.includes('torden')) {
-      return '⚡';
+      return '🌩️';
     }
     
     // Heavy rain conditions
@@ -282,8 +283,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       
       // Calculate perpendicular vector to the left of the route direction
       // For a vector (dx, dy), the perpendicular vector to the left is (-dy, dx)
-      const perpDx = routeDirectionDx;
-      const perpDy = routeDirectionDy;
+      const perpDx = -routeDirectionDy;
+      const perpDy = routeDirectionDx;
       
       
       return {
@@ -368,6 +369,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     const direction2 = parseFloat(secondClosestPoint.windDirection.replace(/[^0-9.-]/g, '')) || 0;
     
     // Handle the case where directions are on opposite sides of the compass
+    // Handle the case where directions are on opposite sides of the compass
     let direction;
     if (Math.abs(direction1 - direction2) > 180) {
       // Adjust one of the directions by adding/subtracting 360
@@ -411,9 +413,13 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     // Force a small delay to ensure DOM is ready
     setTimeout(() => {
       try {
-        // Initialize map
+        // Initialize map with zoom animation disabled to prevent marker jumping
         console.log("Creating new map instance");
-        const map = window.L.map(mapRef.current).setView([
+        const map = window.L.map(mapRef.current, {
+          zoomAnimation: false, // Disable zoom animation to prevent marker jumping
+          markerZoomAnimation: false, // Disable marker zoom animation
+          fadeAnimation: false // Disable fade animation
+        }).setView([
           routeCoordinates[0].lat,
           routeCoordinates[0].lon
         ], 10, { animate: false });
@@ -427,6 +433,10 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           map.createPane('weatherPane');
           map.getPane('weatherPane').style.zIndex = 700;
         }
+        if (!map.getPane('debugPane')) {
+          map.createPane('debugPane');
+          map.getPane('debugPane').style.zIndex = 900;
+        }
         // Ensure markerPane has highest z-index
         map.getPane('markerPane').style.zIndex = 800;
 
@@ -437,8 +447,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 
         // Create layer group for weather markers
         const weatherLayer = window.L.layerGroup();
-        // Only add weather layer to map if we have weather data and showWeatherMarkers is true
-        if (showWeatherMarkers && weatherPoints.length > 0) {
+        // Add weather layer to map if we have weather data and either showWeatherMarkers or showDebugLayer is true
+        if ((showWeatherMarkers || showDebugLayer) && weatherPoints.length > 0) {
           weatherLayer.addTo(map);
         }
         weatherLayerRef.current = weatherLayer;
@@ -508,102 +518,22 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           defaultRouteLayerRef.current = routeLine;
         }
 
-        // Værmarkører og punktmarkører (med pikselbasert offset og popup)
-        let markerRefs: any[] = [];
+        // Set up weather markers using the shared createWeatherMarkers function
+        weatherLayerRef.current = weatherLayer;
+        mapInstanceRef.current = map;
+        
+        // Create initial weather markers if needed
         if (showWeatherMarkers && weatherPoints.length > 0) {
-          weatherPoints.forEach((point, index) => {
-            // Punktmarkør på selve rute-punktet
-            const circleMarker = window.L.circleMarker([point.lat, point.lon], {
-              radius: 3,
-              color: '#000',
-              weight: 1.5,
-              opacity: 0.7,
-              fillColor: '#fff',
-              fillOpacity: 0.7,
-              pane: 'weatherPane',
-              zIndexOffset: 1000
-            }).addTo(weatherLayer);
-
-            // Finn vinkelrett retning på ruten for dette punktet
-            let from, to;
-            if (index === 0 && weatherPoints.length > 1) {
-              from = window.L.latLng(point.lat, point.lon);
-              to = window.L.latLng(weatherPoints[1].lat, weatherPoints[1].lon);
-            } else if (index === weatherPoints.length - 1 && index > 0) {
-              from = window.L.latLng(weatherPoints[index - 1].lat, weatherPoints[index - 1].lon);
-              to = window.L.latLng(point.lat, point.lon);
-            } else if (index > 0 && index < weatherPoints.length - 1) {
-              from = window.L.latLng(weatherPoints[index - 1].lat, weatherPoints[index - 1].lon);
-              to = window.L.latLng(weatherPoints[index + 1].lat, weatherPoints[index + 1].lon);
-            } else {
-              from = to = window.L.latLng(point.lat, point.lon);
-            }
-            const perpAngle = perpendicularAngle(from, to);
-            const pixelOffset = 10 * ((index === weatherPoints.length - 1) ? -1 : 1);
-            const baseLatLng = window.L.latLng(point.lat, point.lon);
-            const basePoint = map.latLngToContainerPoint(baseLatLng);
-            const offsetPoint = basePoint.add([
-              Math.cos(perpAngle) * pixelOffset,
-              Math.sin(perpAngle) * pixelOffset,
-            ]);
-            const markerLatLng = map.containerPointToLatLng(offsetPoint);
-
-            // Værmarkør på offset-posisjonen
-            const marker = window.L.marker(markerLatLng, {
-              icon: window.L.divIcon({
-                html: `
-                  <div class="weather-marker-container" style="position: relative; width: 0; height: 0;">
-                    <div class="weather-marker-content weather-marker-${index}" style="
-                      position: absolute;
-                      text-shadow: 0px 0px 3px white, 0px 0px 5px white;
-                      line-height: 0.8;
-                      text-align: center;
-                      pointer-events: auto;
-                      white-space: nowrap;
-                    ">
-                      ${point.forecastAvailable ? `
-                        <div style="position: relative; display: inline-block;">
-                          <div style="text-align: center;">
-                            <div class="text-2xl" style="text-shadow: 0 0 4px white, 0 0 8px white; background-color: rgba(255,255,255,0.3); border-radius: 50%; padding: 2px;">
-                              ${getWeatherIcon(point.description)}
-                            </div>
-                            <div style="margin-top: -8px;">
-                              <span class="text-base font-bold">${point.temperature}°</span>
-                            </div>
-                          </div>
-                          <div style="position: absolute; left: 80%; top: 50%; transform: translateY(-50%); margin-left: -8px;">
-                            ${createWindArrowSvg(point.windDirection, point.windSpeed)}
-                          </div>
-                        </div>
-                      ` : ''}
-                    </div>
-                  </div>
-                `,
-                className: 'weather-marker',
-                iconSize: [10, 10],
-                iconAnchor: [0, 0],
-              }),
-              zIndexOffset: 1000,
-              pane: 'weatherPane'
-            }).addTo(weatherLayer);
-
-            // Legg til popup på værmarkøren (åpnes ved klikk)
-            marker.bindPopup(
-              `<div style="min-width:120px">
-                <strong>${point.location || ""}</strong><br/>
-                ${point.time ? `Kl. ${point.time}<br/>` : ""}
-                ${point.forecastAvailable ? `
-                  <span>${point.description}</span><br/>
-                  <span>Temp: <b>${point.temperature}°C</b></span><br/>
-                  <span>Vind: <b>${point.windSpeed} m/s ${point.windDirection}</b></span>
-                ` : `<span>Ingen værdata</span>`}
-              </div>`,
-              { maxWidth: 250 }
-            );
-
-            markerRefs.push(marker);
-            markerRefs.push(circleMarker);
-          });
+          // We need to set these refs before calling createWeatherMarkers
+          setTimeout(() => {
+            createWeatherMarkers();
+            
+            // Add zoom event listener to recalculate marker positions
+            map.on('zoomend', () => {
+              console.log("Map zoomed during initial setup, recalculating marker positions");
+              createWeatherMarkers();
+            });
+          }, 0);
         }
 
         // Fit map to show entire route
@@ -624,8 +554,6 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         map.once("moveend", () => setMapReady(true));
         console.log("Map initialization complete");
 
-        // Cleanup for markører
-        map._weatherMarkerRefs = markerRefs;
       } catch (error) {
         console.error("Error initializing map:", error);
       }
@@ -669,37 +597,23 @@ export const RouteMap: React.FC<RouteMapProps> = ({
     }
   }, [routeCoordinates.length > 0 ? routeCoordinates[0].lat + routeCoordinates[0].lon : 0]);
 
-  // Toggle weather markers (værmarkører og punktmarkører) uten å re-initialisere kartet
-  useEffect(() => {
+  // Helper function to create weather markers
+  const createWeatherMarkers = () => {
     if (!mapInstanceRef.current || !weatherLayerRef.current) return;
-    // Fjern gamle markører
+    
+    // Remove old markers
     if (mapInstanceRef.current._weatherMarkerRefs) {
       mapInstanceRef.current._weatherMarkerRefs.forEach((m: any) => m.remove && m.remove());
       mapInstanceRef.current._weatherMarkerRefs = null;
     }
+    
     let markerRefs: any[] = [];
+    
     if (showWeatherMarkers && weatherPoints.length > 0) {
-      console.log("weatherPoints.length", weatherPoints.length, weatherPoints);
+      console.log("Creating weather markers, count:", weatherPoints.length);
+      
       weatherPoints.forEach((point, index) => {
-        // Punktmarkør på selve rute-punktet
-        const circleMarker = window.L.circleMarker([point.lat, point.lon], {
-          radius: 3,
-          color: '#000',
-          weight: 1.5,
-          opacity: 0.7,
-          fillColor: '#fff',
-          fillOpacity: 0.7,
-          pane: 'weatherPane',
-          zIndexOffset: 1000
-        }).addTo(weatherLayerRef.current);
-        // Sørg for at alle markører i laget ligger øverst
-        if (weatherLayerRef.current && weatherLayerRef.current.eachLayer) {
-          weatherLayerRef.current.eachLayer((layer: any) => {
-            if (layer.bringToFront) layer.bringToFront();
-          });
-        }
-
-        // Finn vinkelrett retning på ruten for dette punktet
+        // Find perpendicular direction for this point
         let from, to;
         if (index === 0 && weatherPoints.length > 1) {
           from = window.L.latLng(point.lat, point.lon);
@@ -713,8 +627,37 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         } else {
           from = to = window.L.latLng(point.lat, point.lon);
         }
+        
+        // Calculate perpendicular angle
         const perpAngle = perpendicularAngle(from, to);
-        const pixelOffset = 10 * ((index === weatherPoints.length - 1) ? -1 : 1);
+        
+        // Create circle marker at route point
+        const circleMarker = window.L.circleMarker([point.lat, point.lon], {
+          radius: 3,
+          color: '#000',
+          weight: 1.5,
+          opacity: 0.7,
+          fillColor: '#fff',
+          fillOpacity: 0.7,
+          pane: 'weatherPane',
+          zIndexOffset: 1000
+        }).addTo(weatherLayerRef.current);
+        
+        // Add popup with calculation details
+        circleMarker.bindPopup(
+          `<div style="min-width:150px">
+            <strong>Weather Marker Placement Calculation</strong><br/>
+            Point: (${point.lat.toFixed(4)}, ${point.lon.toFixed(4)})<br/>
+            From: (${from.lat.toFixed(4)}, ${from.lng.toFixed(4)})<br/>
+            To: (${to.lat.toFixed(4)}, ${to.lng.toFixed(4)})<br/>
+            Perpendicular Angle: ${(perpAngle * 180 / Math.PI).toFixed(2)}°<br/>
+            Pixel Offset: 20
+          </div>`,
+          { maxWidth: 250 }
+        );
+        
+        // Calculate offset position for weather marker
+        const pixelOffset = 20 * ((index === weatherPoints.length - 1) ? -1 : 1);
         const baseLatLng = window.L.latLng(point.lat, point.lon);
         const basePoint = mapInstanceRef.current.latLngToContainerPoint(baseLatLng);
         const offsetPoint = basePoint.add([
@@ -722,8 +665,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           Math.sin(perpAngle) * pixelOffset,
         ]);
         const markerLatLng = mapInstanceRef.current.containerPointToLatLng(offsetPoint);
-
-        // Værmarkør på offset-posisjonen
+        
+        // Create weather marker at offset position
         const marker = window.L.marker(markerLatLng, {
           icon: window.L.divIcon({
             html: `
@@ -755,14 +698,14 @@ export const RouteMap: React.FC<RouteMapProps> = ({
               </div>
             `,
             className: 'weather-marker',
-            iconSize: [10, 10],
-            iconAnchor: [0, 0],
+            iconSize: [100, 100],
+            iconAnchor: [30, 30],
           }),
           pane: 'weatherPane',
           zIndexOffset: 1000
         }).addTo(weatherLayerRef.current);
-
-        // Legg til popup på værmarkøren (åpnes ved klikk)
+        
+        // Add popup to weather marker
         marker.bindPopup(
           `<div style="min-width:120px">
             <strong>${point.location || ""}</strong><br/>
@@ -775,19 +718,114 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           </div>`,
           { maxWidth: 250 }
         );
-
+        
         markerRefs.push(marker);
         markerRefs.push(circleMarker);
       });
     }
+    
     mapInstanceRef.current._weatherMarkerRefs = markerRefs;
-    // Sørg for at alle markører i laget ligger øverst etter at ALLE er lagt til
+    
+    // Ensure all markers are on top
     if (weatherLayerRef.current && weatherLayerRef.current.eachLayer) {
       weatherLayerRef.current.eachLayer((layer: any) => {
         if (layer.bringToFront) layer.bringToFront();
       });
     }
-  }, [showWeatherMarkers, weatherPoints, mapInstanceRef.current]);
+  };
+  
+  // Effect to handle weather marker toggling and zoom changes
+  useEffect(() => {
+    if (!mapInstanceRef.current || !weatherLayerRef.current) return;
+    
+    // Create weather markers
+    createWeatherMarkers();
+    
+    // Instead of recreating markers on zoom, use Leaflet's built-in functionality
+    // to maintain marker positions during zoom operations
+    if (mapInstanceRef.current) {
+      // Disable the default animation during zoom to prevent jumping
+      mapInstanceRef.current.options.zoomAnimation = false;
+      
+      // Force all markers to use the same pane to ensure consistent behavior
+      if (weatherLayerRef.current && weatherLayerRef.current.eachLayer) {
+        weatherLayerRef.current.eachLayer((layer: any) => {
+          if (layer.options && layer.options.pane !== 'weatherPane') {
+            layer.options.pane = 'weatherPane';
+          }
+        });
+      }
+    }
+    
+    // Cleanup
+    return () => {
+      if (mapInstanceRef.current) {
+        // No need to remove event listeners as we're not adding any
+      }
+    };
+  }, [showWeatherMarkers, weatherPoints, mapInstanceRef.current, showDebugLayer]);
+
+  // Effect to update debug lines when showDebugLayer changes
+  useEffect(() => {
+    if (!mapInstanceRef.current || !weatherLayerRef.current) return;
+
+    // Remove existing debug lines
+    if (mapInstanceRef.current._debugLines) {
+      mapInstanceRef.current._debugLines.forEach((line: any) => line.remove && line.remove());
+      mapInstanceRef.current._debugLines = null;
+    }
+
+    if (showDebugLayer && weatherPoints.length > 0) {
+      const debugLines: any[] = [];
+
+      weatherPoints.forEach((point, index) => {
+        let from, to;
+        if (index === 0 && weatherPoints.length > 1) {
+          from = window.L.latLng(point.lat, point.lon);
+          to = window.L.latLng(weatherPoints[1].lat, weatherPoints[1].lon);
+        } else if (index === weatherPoints.length - 1 && index > 0) {
+          from = window.L.latLng(weatherPoints[index - 1].lat, weatherPoints[index - 1].lon);
+          to = window.L.latLng(point.lat, point.lon);
+        } else if (index > 0 && index < weatherPoints.length - 1) {
+          from = window.L.latLng(weatherPoints[index - 1].lat, weatherPoints[index - 1].lon);
+          to = window.L.latLng(weatherPoints[index + 1].lat, weatherPoints[index + 1].lon);
+        } else {
+          from = to = window.L.latLng(point.lat, point.lon);
+        }
+
+        // Line showing route direction
+        const directionLine = window.L.polyline(
+          [[from.lat, from.lng], [to.lat, to.lng]],
+          { color: 'blue', weight: 1, dashArray: '5,5', pane: 'debugPane' }
+        ).addTo(weatherLayerRef.current);
+
+        // Calculate markerLatLng for weather marker placement line
+        const perpAngle = perpendicularAngle(from, to);
+        const pixelOffset = 20 * ((index === weatherPoints.length - 1) ? -1 : 1);
+        const baseLatLng = window.L.latLng(point.lat, point.lon);
+        const basePoint = mapInstanceRef.current.latLngToContainerPoint(baseLatLng);
+        const offsetPoint = basePoint.add([
+          Math.cos(perpAngle) * pixelOffset,
+          Math.sin(perpAngle) * pixelOffset,
+        ]);
+        const markerLatLng = mapInstanceRef.current.containerPointToLatLng(offsetPoint);
+
+        // Line showing weather marker placement
+        const debugMarkerLatLng = markerLatLng;
+        const markerLine = window.L.polyline(
+          [[point.lat, point.lon], [debugMarkerLatLng.lat, debugMarkerLatLng.lng]],
+          { color: 'red', weight: 1, dashArray: '3,3', pane: 'debugPane' }
+        ).addTo(weatherLayerRef.current);
+
+        debugLines.push(directionLine, markerLine);
+      });
+
+      mapInstanceRef.current._debugLines = debugLines;
+      
+      // No need to add zoom event listeners as we've disabled zoom animations
+      // This prevents debug lines from jumping during zoom operations
+    }
+  }, [showDebugLayer, weatherPoints]);
 
   // Toggle wind coloring (vindfarger) uten å re-initialisere kartet
   useEffect(() => {
@@ -910,6 +948,14 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           />
         </div>
         
+        <div className="flex items-center justify-between space-x-2">
+          <Label htmlFor="debug-layer" className="text-sm">Debug-visning</Label>
+          <Switch
+            id="debug-layer"
+            checked={showDebugLayer}
+            onCheckedChange={() => setShowDebugLayer(prev => !prev)}
+          />
+        </div>
       </div>
     </div>
   );
