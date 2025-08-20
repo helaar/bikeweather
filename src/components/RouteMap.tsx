@@ -328,17 +328,18 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       return { direction: 0, speed: 0 };
     }
     
-    // Find the two closest weather points
-    let closestPoint = weatherPoints[0];
-    let secondClosestPoint = weatherPoints[0];
+    // Find the two closest weather points with available forecasts and that haven't passed
+    let closestPoint: WeatherPrediction | null = null;
+    let secondClosestPoint: WeatherPrediction | null = null;
     let minDistance = Number.MAX_VALUE;
     let secondMinDistance = Number.MAX_VALUE;
     
     weatherPoints.forEach(weatherPoint => {
-      if (!weatherPoint.forecastAvailable) return;
+      // Skip points that don't have forecasts available or where time has passed
+      if (!weatherPoint.forecastAvailable || weatherPoint.timeHasPassed) return;
       
       const distance = Math.sqrt(
-        Math.pow(weatherPoint.lat - point.lat, 2) + 
+        Math.pow(weatherPoint.lat - point.lat, 2) +
         Math.pow(weatherPoint.lon - point.lon, 2)
       );
       
@@ -353,8 +354,13 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       }
     });
     
+    // If no weather points with available forecasts were found, return zeros
+    if (!closestPoint) {
+      return { direction: 0, speed: 0 };
+    }
+    
     // If we only have one valid weather point, use its data
-    if (!secondClosestPoint.forecastAvailable || closestPoint === secondClosestPoint) {
+    if (!secondClosestPoint || closestPoint === secondClosestPoint) {
       const direction = parseFloat(closestPoint.windDirection.replace(/[^0-9.-]/g, '')) || 0;
       return { direction, speed: closestPoint.windSpeed };
     }
@@ -460,6 +466,13 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           console.log("Adding colored route segments based on wind effects");
           routeLayersRef.current = [];
           
+          // Find the time range for which we have valid forecasts
+          const validForecastTimes = weatherPoints.filter(point =>
+            point.forecastAvailable && !point.timeHasPassed
+          );
+          
+          console.log(`Found ${validForecastTimes.length} valid forecast points out of ${weatherPoints.length} total points`);
+          
           for (let i = 0; i < routeCoordinates.length - 1; i++) {
             const start = routeCoordinates[i];
             const end = routeCoordinates[i + 1];
@@ -473,14 +486,52 @@ export const RouteMap: React.FC<RouteMapProps> = ({
               lon: (start.lon + end.lon) / 2
             };
             
-            // Interpolate wind data for this segment
-            const windData = interpolateWindData(midpoint);
+            // Check if this segment is within the valid forecast time range
+            // by finding the closest weather point to this segment
+            let closestPointIndex = -1;
+            let minDistance = Number.MAX_VALUE;
             
-            // Determine wind effect
-            const windEffect = getWindEffect(windData.direction, bearing, windData.speed);
+            for (let j = 0; j < weatherPoints.length; j++) {
+              const point = weatherPoints[j];
+              const distance = Math.sqrt(
+                Math.pow(point.lat - midpoint.lat, 2) +
+                Math.pow(point.lon - midpoint.lon, 2)
+              );
+              
+              if (distance < minDistance) {
+                minDistance = distance;
+                closestPointIndex = j;
+              }
+            }
             
-            // Get color based on wind effect
-            const color = getWindEffectColor(windEffect, windData.speed);
+            // Default color for segments without forecast
+            let color = '#3b82f6'; // Default blue
+            let windEffect: 'headwind' | 'tailwind' | 'crosswind' | 'light' = 'light';
+            let hasForecast = false;
+            // Initialize windData with default values
+            let windData = { direction: 0, speed: 0 };
+            
+            // Check if the closest point has a valid forecast and hasn't passed
+            if (closestPointIndex >= 0) {
+              const closestPoint = weatherPoints[closestPointIndex];
+              hasForecast = closestPoint.forecastAvailable && !closestPoint.timeHasPassed;
+              
+              if (hasForecast) {
+                // Interpolate wind data for this segment
+                windData = interpolateWindData(midpoint);
+                
+                // Only determine wind effect if we have valid wind data
+                if (windData.speed > 0 || windData.direction > 0) {
+                  // Determine wind effect
+                  windEffect = getWindEffect(windData.direction, bearing, windData.speed);
+                  
+                  // Get color based on wind effect
+                  color = getWindEffectColor(windEffect, windData.speed);
+                } else {
+                  hasForecast = false;
+                }
+              }
+            }
             
             // Create a polyline for this segment with the appropriate color
             const segmentLatLngs = [[start.lat, start.lon], [end.lat, end.lon]];
@@ -501,10 +552,18 @@ export const RouteMap: React.FC<RouteMapProps> = ({
               windEffect === 'crosswind' ? 'Sidevind' :
               'Svak vind';
             
-            segmentLine.bindTooltip(`${windEffectText}: ${Math.round(windData.speed)} m/s`, {
-              permanent: false,
-              direction: 'top'
-            });
+            // Only add wind information tooltip if we have forecast data
+            if (hasForecast) {
+              segmentLine.bindTooltip(`${windEffectText}: ${Math.round(windData.speed)} m/s`, {
+                permanent: false,
+                direction: 'top'
+              });
+            } else {
+              segmentLine.bindTooltip('Ingen værdata tilgjengelig', {
+                permanent: false,
+                direction: 'top'
+              });
+            }
           }
         } else {
           // If wind coloring is disabled, create a single polyline with default color
@@ -840,6 +899,13 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       defaultRouteLayerRef.current = null;
     }
     if (showWindColoring && weatherPoints.length > 0) {
+      // Find the time range for which we have valid forecasts
+      const validForecastTimes = weatherPoints.filter(point =>
+        point.forecastAvailable && !point.timeHasPassed
+      );
+      
+      console.log(`Found ${validForecastTimes.length} valid forecast points out of ${weatherPoints.length} total points`);
+      
       for (let i = 0; i < routeCoordinates.length - 1; i++) {
         const start = routeCoordinates[i];
         const end = routeCoordinates[i + 1];
@@ -848,9 +914,54 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           lat: (start.lat + end.lat) / 2,
           lon: (start.lon + end.lon) / 2
         };
-        const windData = interpolateWindData(midpoint);
-        const windEffect = getWindEffect(windData.direction, bearing, windData.speed);
-        const color = getWindEffectColor(windEffect, windData.speed);
+        
+        // Check if this segment is within the valid forecast time range
+        // by finding the closest weather point to this segment
+        let closestPointIndex = -1;
+        let minDistance = Number.MAX_VALUE;
+        
+        for (let j = 0; j < weatherPoints.length; j++) {
+          const point = weatherPoints[j];
+          const distance = Math.sqrt(
+            Math.pow(point.lat - midpoint.lat, 2) +
+            Math.pow(point.lon - midpoint.lon, 2)
+          );
+          
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestPointIndex = j;
+          }
+        }
+        
+        // Default color for segments without forecast
+        let color = '#3b82f6'; // Default blue
+        let windEffect: 'headwind' | 'tailwind' | 'crosswind' | 'light' = 'light';
+        let hasForecast = false;
+        // Initialize windData with default values
+        let windData = { direction: 0, speed: 0 };
+        
+        // Check if the closest point has a valid forecast and hasn't passed
+        if (closestPointIndex >= 0) {
+          const closestPoint = weatherPoints[closestPointIndex];
+          hasForecast = closestPoint.forecastAvailable && !closestPoint.timeHasPassed;
+          
+          if (hasForecast) {
+            // Interpolate wind data for this segment
+            windData = interpolateWindData(midpoint);
+            
+            // Only determine wind effect if we have valid wind data
+            if (windData.speed > 0 || windData.direction > 0) {
+              // Determine wind effect
+              windEffect = getWindEffect(windData.direction, bearing, windData.speed);
+              
+              // Get color based on wind effect
+              color = getWindEffectColor(windEffect, windData.speed);
+            } else {
+              hasForecast = false;
+            }
+          }
+        }
+        
         const segmentLatLngs = [[start.lat, start.lon], [end.lat, end.lon]];
         const segmentLine = window.L.polyline(segmentLatLngs, {
           color: color,
@@ -858,15 +969,24 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           opacity: 0.8
         , pane: 'windPane' }).addTo(mapInstanceRef.current);
         routeLayersRef.current.push(segmentLine);
-        const windEffectText =
-          windEffect === 'headwind' ? 'Motvind' :
-          windEffect === 'tailwind' ? 'Medvind' :
-          windEffect === 'crosswind' ? 'Sidevind' :
-          'Svak vind';
-        segmentLine.bindTooltip(`${windEffectText}: ${Math.round(windData.speed)} m/s`, {
-          permanent: false,
-          direction: 'top'
-        });
+        
+        // Only add wind information tooltip if we have forecast data
+        if (hasForecast) {
+          const windEffectText =
+            windEffect === 'headwind' ? 'Motvind' :
+            windEffect === 'tailwind' ? 'Medvind' :
+            windEffect === 'crosswind' ? 'Sidevind' :
+            'Svak vind';
+          segmentLine.bindTooltip(`${windEffectText}: ${Math.round(windData.speed)} m/s`, {
+            permanent: false,
+            direction: 'top'
+          });
+        } else {
+          segmentLine.bindTooltip('Ingen værdata tilgjengelig', {
+            permanent: false,
+            direction: 'top'
+          });
+        }
       }
     } else {
       // Default rute
