@@ -301,68 +301,20 @@ const WeatherRoute = () => {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
         
-        // Check if we have cached data for this location
-        const cacheKey = `weather_cache_${point.lat.toFixed(4)}_${point.lon.toFixed(4)}`;
-        const cachedData = localStorage.getItem(cacheKey);
-        let lastModified = null;
-        
-        if (cachedData) {
-          try {
-            const cache = JSON.parse(cachedData);
-            lastModified = cache.lastModified;
-          } catch (e) {
-            console.error('Error parsing cached weather data:', e);
-          }
-        }
-        
-        const headers: HeadersInit = {
-          'User-Agent': 'SykkelvaerApp/1.0 github.com/helaar/bikeweather',
-          'Accept': 'application/json',
-          'Origin': window.location.origin,
-          'Referer': window.location.origin
-        };
-        
-        // Add If-Modified-Since header if we have cached data
-        if (lastModified) {
-          headers['If-Modified-Since'] = lastModified;
-        }
-        
         const response = await fetch(
           `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${point.lat}&lon=${point.lon}`,
           {
-            headers,
-            mode: 'cors',
-            credentials: 'omit'
+            headers: {
+              'User-Agent': 'SykkelvaerApp/1.0 (your-email@example.com)'
+            }
           }
         );
         
-        let weatherResponse;
-        
-        // Handle 304 Not Modified (use cached data)
-        if (response.status === 304 && cachedData) {
-          console.log('Using cached weather data for', locationName);
-          const cache = JSON.parse(cachedData);
-          weatherResponse = cache.data;
-        }
-        // Handle successful response
-        else if (response.ok) {
-          // Store the Last-Modified header for future requests
-          const lastModifiedHeader = response.headers.get('Last-Modified');
-          weatherResponse = await response.json();
-          
-          // Cache the response if we have a Last-Modified header
-          if (lastModifiedHeader) {
-            localStorage.setItem(cacheKey, JSON.stringify({
-              lastModified: lastModifiedHeader,
-              data: weatherResponse,
-              timestamp: new Date().toISOString()
-            }));
-          }
-        }
-        // Handle error response
-        else {
+        if (!response.ok) {
           throw new Error(`Weather API request failed: ${response.status}`);
         }
+        
+        const weatherResponse = await response.json();
         
         // Calculate time for this point based on route progression
         // Ensure we're working with local time by explicitly setting it
