@@ -135,14 +135,27 @@ export const refreshStravaToken = async (refreshToken: string): Promise<StravaTo
  * Get athlete's routes from Strava
  */
 export const getStravaRoutes = async (accessToken: string): Promise<StravaRoute[]> => {
+  const allRoutes: StravaRoute[] = [];
+  const perPage = 200;
+  let page = 1;
+
   try {
-    const response = await axios.get<StravaRoute[]>(`${STRAVA_API_URL}/athlete/routes`, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
-    
-    return response.data;
+    while (true) {
+      const response = await axios.get<StravaRoute[]>(`${STRAVA_API_URL}/athlete/routes`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        },
+        params: { page, per_page: perPage }
+      });
+
+      const routes = response.data;
+      allRoutes.push(...routes);
+
+      if (routes.length < perPage) break;
+      page++;
+    }
+
+    return allRoutes;
   } catch (error) {
     console.error('Error getting Strava routes:', error);
     throw error;
