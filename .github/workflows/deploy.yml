@@ -20,9 +20,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Deploy Cloudflare Worker proxy first so the token exchange secret is never in the browser bundle
+  deploy-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Deploy Cloudflare Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          secrets: |
+            STRAVA_CLIENT_SECRET
+        env:
+          STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
+
   # Build job
   build:
     runs-on: ubuntu-latest
+    needs: deploy-worker
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,22 +57,20 @@ jobs:
         run: |
           echo "Checking if secrets are available (values will be masked):"
           echo "VITE_STRAVA_CLIENT_ID: ${{ secrets.VITE_STRAVA_CLIENT_ID != '' && 'is set' || 'is NOT set' }}"
-          echo "VITE_STRAVA_CLIENT_SECRET: ${{ secrets.VITE_STRAVA_CLIENT_SECRET != '' && 'is set' || 'is NOT set' }}"
+          echo "VITE_STRAVA_PROXY_URL: ${{ secrets.VITE_STRAVA_PROXY_URL != '' && 'is set' || 'is NOT set' }}"
           echo "Testing if any secret can be accessed: ${{ secrets.GITHUB_TOKEN != '' && 'YES - secrets can be accessed' || 'NO - cannot access any secrets' }}"
-          echo "Secret names available in this repository:"
-          echo "${{ toJSON(secrets) }}" | grep -o '"[^"]*"' | sort
       - name: Check Environment Variables
         run: node scripts/check-env.js
         env:
           VITE_STRAVA_CLIENT_ID: ${{ secrets.VITE_STRAVA_CLIENT_ID }}
-          VITE_STRAVA_CLIENT_SECRET: ${{ secrets.VITE_STRAVA_CLIENT_SECRET }}
+          VITE_STRAVA_PROXY_URL: ${{ secrets.VITE_STRAVA_PROXY_URL }}
           NODE_ENV: 'production'
           GITHUB_ACTIONS: 'true'
       - name: Build
         run: npm run build
         env:
           VITE_STRAVA_CLIENT_ID: ${{ secrets.VITE_STRAVA_CLIENT_ID }}
-          VITE_STRAVA_CLIENT_SECRET: ${{ secrets.VITE_STRAVA_CLIENT_SECRET }}
+          VITE_STRAVA_PROXY_URL: ${{ secrets.VITE_STRAVA_PROXY_URL }}
           # Explicitly set GitHub Actions environment
           GITHUB_ACTIONS: 'true'
           # Set mode explicitly
