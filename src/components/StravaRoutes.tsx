@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
-import { MapPin, Calendar, ArrowRight, RefreshCw } from 'lucide-react';
+import { MapPin, Calendar, ArrowRight, RefreshCw, Star } from 'lucide-react';
 import { StravaIcon } from '@/components/icons/StravaIcon';
 
 interface StravaRoutesProps {
@@ -26,6 +26,7 @@ export const StravaRoutes: React.FC<StravaRoutesProps> = ({ onRouteSelect }) => 
   const [routes, setRoutes] = useState<StravaRoute[]>([]);
   const [filteredRoutes, setFilteredRoutes] = useState<StravaRoute[]>([]);
   const [nameFilter, setNameFilter] = useState('');
+  const [starredOnly, setStarredOnly] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
   const [loadingGpx, setLoadingGpx] = useState(false);
@@ -45,19 +46,21 @@ export const StravaRoutes: React.FC<StravaRoutesProps> = ({ onRouteSelect }) => 
     }
   }, [isAuthenticated]);
   
-  // Filter routes when nameFilter changes
+  // Filter routes when nameFilter or starredOnly changes
   useEffect(() => {
     if (routes.length > 0) {
-      if (nameFilter.trim() === '') {
-        setFilteredRoutes(routes);
-      } else {
-        const filtered = routes.filter(route =>
+      let filtered = routes;
+      if (starredOnly) {
+        filtered = filtered.filter(route => route.starred);
+      }
+      if (nameFilter.trim() !== '') {
+        filtered = filtered.filter(route =>
           route.name.toLowerCase().includes(nameFilter.toLowerCase())
         );
-        setFilteredRoutes(filtered);
       }
+      setFilteredRoutes(filtered);
     }
-  }, [nameFilter, routes]);
+  }, [nameFilter, starredOnly, routes]);
 
   // Fetch routes from Strava with retry logic
   const fetchRoutes = async (retryCount = 0) => {
@@ -308,14 +311,23 @@ const handleRouteSelect = async (route: StravaRoute) => {
           Velg en av dine lagrede ruter fra Strava
         </CardDescription>
         
-        {/* Filter input */}
-        <div className="mt-3">
+        {/* Filter controls */}
+        <div className="mt-3 flex gap-2">
           <Input
             placeholder="Filtrer ruter etter navn..."
             value={nameFilter}
             onChange={(e) => setNameFilter(e.target.value)}
-            className="w-full"
+            className="flex-1"
           />
+          <Button
+            variant={starredOnly ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStarredOnly(prev => !prev)}
+            title="Vis kun favoritter"
+            className="shrink-0"
+          >
+            <Star className={`h-4 w-4 ${starredOnly ? 'fill-current' : ''}`} />
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -345,7 +357,12 @@ const handleRouteSelect = async (route: StravaRoute) => {
                 className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
                 data-route-id={route.id}
               >
-                <h3 className="font-medium text-lg">{route.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-medium text-lg">{route.name}</h3>
+                  {route.starred && (
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 shrink-0" />
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2 text-sm text-gray-600">
                   <div className="flex items-center">
                     <MapPin className="h-4 w-4 mr-1" />
