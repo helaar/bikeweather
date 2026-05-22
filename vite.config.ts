@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
   console.log('NODE_ENV:', process.env.NODE_ENV);
   console.log('Is GitHub Pages:', isGitHubPages);
   console.log('VITE_STRAVA_CLIENT_ID exists:', !!process.env.VITE_STRAVA_CLIENT_ID);
-  console.log('VITE_STRAVA_CLIENT_SECRET exists:', !!process.env.VITE_STRAVA_CLIENT_SECRET);
+  console.log('VITE_STRAVA_PROXY_URL exists:', !!process.env.VITE_STRAVA_PROXY_URL);
   
   return {
     base: '/bikeweather/', // Add base path for GitHub Pages
@@ -46,7 +46,8 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.MODE': JSON.stringify(isGitHubPages ? 'github-pages' : mode),
       // Expose Strava API credentials from environment variables
       'import.meta.env.VITE_STRAVA_CLIENT_ID': JSON.stringify(process.env.VITE_STRAVA_CLIENT_ID || ''),
-      'import.meta.env.VITE_STRAVA_CLIENT_SECRET': JSON.stringify(process.env.VITE_STRAVA_CLIENT_SECRET || ''),
+      // STRAVA_CLIENT_SECRET intentionally omitted — it lives in the Cloudflare Worker, not the browser bundle.
+      'import.meta.env.VITE_STRAVA_PROXY_URL': JSON.stringify(process.env.VITE_STRAVA_PROXY_URL || ''),
       // Add additional environment information for debugging
       'import.meta.env.IS_GITHUB_PAGES': JSON.stringify(isGitHubPages),
       'import.meta.env.BUILD_TIME': JSON.stringify(new Date().toISOString()),
