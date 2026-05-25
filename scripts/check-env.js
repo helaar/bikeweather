@@ -3,31 +3,26 @@
 
 console.log('=== Environment Variables Check ===');
 console.log('VITE_STRAVA_CLIENT_ID:', process.env.VITE_STRAVA_CLIENT_ID ? 'Set (value hidden)' : 'Not set');
-console.log('VITE_STRAVA_CLIENT_ID type:', typeof process.env.VITE_STRAVA_CLIENT_ID);
 console.log('VITE_STRAVA_CLIENT_ID length:', process.env.VITE_STRAVA_CLIENT_ID ? process.env.VITE_STRAVA_CLIENT_ID.length : 0);
 
-console.log('VITE_STRAVA_CLIENT_SECRET:', process.env.VITE_STRAVA_CLIENT_SECRET ? 'Set (value hidden)' : 'Not set');
-console.log('VITE_STRAVA_CLIENT_SECRET type:', typeof process.env.VITE_STRAVA_CLIENT_SECRET);
-console.log('VITE_STRAVA_CLIENT_SECRET length:', process.env.VITE_STRAVA_CLIENT_SECRET ? process.env.VITE_STRAVA_CLIENT_SECRET.length : 0);
+console.log('VITE_STRAVA_PROXY_URL:', process.env.VITE_STRAVA_PROXY_URL ? 'Set' : 'Not set');
 
 console.log('NODE_ENV:', process.env.NODE_ENV || 'Not set');
 console.log('GITHUB_ACTIONS:', process.env.GITHUB_ACTIONS || 'Not set');
 console.log('================================');
 
-// Check if the variables are empty strings
 if (process.env.VITE_STRAVA_CLIENT_ID === '') {
   console.warn('Warning: VITE_STRAVA_CLIENT_ID is an empty string');
 }
 
-if (process.env.VITE_STRAVA_CLIENT_SECRET === '') {
-  console.warn('Warning: VITE_STRAVA_CLIENT_SECRET is an empty string');
+if (!process.env.VITE_STRAVA_PROXY_URL) {
+  console.warn('Warning: VITE_STRAVA_PROXY_URL is not set — token exchange will fail until the Cloudflare Worker is deployed and the secret is added');
 }
 
-// Exit with error code if variables are not set
-if (!process.env.VITE_STRAVA_CLIENT_ID || !process.env.VITE_STRAVA_CLIENT_SECRET) {
-  console.error('Error: One or more required environment variables are not set');
+if (!process.env.VITE_STRAVA_CLIENT_ID) {
+  console.error('Error: VITE_STRAVA_CLIENT_ID is not set');
   process.exit(1);
 } else {
-  console.log('Success: All required environment variables are set');
+  console.log('Success: Required environment variables are set');
   process.exit(0);
 }

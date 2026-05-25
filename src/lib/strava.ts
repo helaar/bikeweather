@@ -4,7 +4,6 @@ import { decodePolyline, createGpxFromCoordinates } from './polyline';
 // Strava API constants
 const STRAVA_API_URL = 'https://www.strava.com/api/v3';
 const STRAVA_AUTH_URL = 'https://www.strava.com/oauth/authorize';
-const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token';
 
 // ===== IMPORTANT: STRAVA API CONFIGURATION =====
 // To use the Strava API, you need to:
@@ -16,7 +15,9 @@ const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token';
 // Get Strava API credentials from environment variables
 // NEVER hardcode these values directly in your code
 const STRAVA_CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID || '';
-const STRAVA_CLIENT_SECRET = import.meta.env.VITE_STRAVA_CLIENT_SECRET || '';
+// Token exchange is proxied through a Cloudflare Worker so the client secret
+// never appears in the browser bundle. See worker/src/index.ts.
+const STRAVA_PROXY_URL = import.meta.env.VITE_STRAVA_PROXY_URL || '';
 // Use the correct path for the callback URL
 // Ensure there's a slash between BASE_URL and 'strava-callback'
 // Always use the full production URL for Strava callback
@@ -35,44 +36,27 @@ console.log('- Environment Mode:', import.meta.env.MODE);
 console.log('- Is GitHub Pages:', import.meta.env.IS_GITHUB_PAGES);
 console.log('- Build Time:', import.meta.env.BUILD_TIME);
 console.log('- Client ID exists:', Boolean(STRAVA_CLIENT_ID));
-console.log('- Client ID type:', typeof STRAVA_CLIENT_ID);
-console.log('- Client ID length:', STRAVA_CLIENT_ID.length);
-console.log('- Client Secret exists:', Boolean(STRAVA_CLIENT_SECRET));
-console.log('- Client Secret type:', typeof STRAVA_CLIENT_SECRET);
-console.log('- Client Secret length:', STRAVA_CLIENT_SECRET.length);
+console.log('- Proxy URL exists:', Boolean(STRAVA_PROXY_URL));
 console.log('- Redirect URI:', REDIRECT_URI);
 
 // If you're testing locally, your redirect URI might look like:
 // http://localhost:8080/bikeweather/strava-callback
 
 // Validate that environment variables are set
-// Check for empty strings as well as undefined
-if (!STRAVA_CLIENT_ID || !STRAVA_CLIENT_SECRET ||
-    STRAVA_CLIENT_ID === '' || STRAVA_CLIENT_SECRET === '') {
-  
-  // Check if we're in a GitHub Pages environment or any production build
+if (!STRAVA_CLIENT_ID || STRAVA_CLIENT_ID === '') {
   const isProduction = import.meta.env.PROD ||
                        import.meta.env.MODE === 'production' ||
                        import.meta.env.MODE === 'github-pages' ||
                        import.meta.env.IS_GITHUB_PAGES === 'true';
-  
-  const message = isProduction
-    ? 'Strava API credentials not found in environment variables. ' +
-      'For GitHub Pages deployment, make sure to add VITE_STRAVA_CLIENT_ID and VITE_STRAVA_CLIENT_SECRET ' +
-      'as repository secrets in your GitHub repository (Settings → Secrets and variables → Actions).'
-    : 'Strava API credentials not found in environment variables. ' +
-      'Create a .env.local file with VITE_STRAVA_CLIENT_ID and VITE_STRAVA_CLIENT_SECRET values.';
-  
-  console.warn(message);
-  console.log('Current environment mode:', import.meta.env.MODE);
-  console.log('Environment details:', {
-    PROD: import.meta.env.PROD,
-    MODE: import.meta.env.MODE,
-    IS_GITHUB_PAGES: import.meta.env.IS_GITHUB_PAGES,
-    BUILD_TIME: import.meta.env.BUILD_TIME,
-    CLIENT_ID_EXISTS: Boolean(STRAVA_CLIENT_ID),
-    CLIENT_SECRET_EXISTS: Boolean(STRAVA_CLIENT_SECRET)
-  });
+
+  console.warn(isProduction
+    ? 'Strava API credentials not found. Add VITE_STRAVA_CLIENT_ID as a repository secret.'
+    : 'Strava API credentials not found. Create a .env.local file with VITE_STRAVA_CLIENT_ID.');
+}
+
+if (!STRAVA_PROXY_URL) {
+  console.warn('VITE_STRAVA_PROXY_URL is not set. Token exchange will fail. ' +
+    'Deploy the Cloudflare Worker and add its URL as a GitHub secret.');
 }
 
 // Scopes needed for reading routes and activities
@@ -94,17 +78,17 @@ export const getStravaAuthUrl = (): string => {
 };
 
 /**
- * Exchange authorization code for access token
+ * Exchange authorization code for access token via the Cloudflare Worker proxy.
+ * The proxy injects the client_secret server-side so it never appears in the browser bundle.
  */
 export const getStravaToken = async (code: string): Promise<StravaTokenResponse> => {
   try {
-    const response = await axios.post<StravaTokenResponse>(STRAVA_TOKEN_URL, {
+    const response = await axios.post<StravaTokenResponse>(STRAVA_PROXY_URL, {
       client_id: STRAVA_CLIENT_ID,
-      client_secret: STRAVA_CLIENT_SECRET,
       code,
       grant_type: 'authorization_code'
     });
-    
+
     return response.data;
   } catch (error) {
     console.error('Error getting Strava token:', error);
@@ -113,17 +97,16 @@ export const getStravaToken = async (code: string): Promise<StravaTokenResponse>
 };
 
 /**
- * Refresh an expired access token
+ * Refresh an expired access token via the Cloudflare Worker proxy.
  */
 export const refreshStravaToken = async (refreshToken: string): Promise<StravaTokenResponse> => {
   try {
-    const response = await axios.post<StravaTokenResponse>(STRAVA_TOKEN_URL, {
+    const response = await axios.post<StravaTokenResponse>(STRAVA_PROXY_URL, {
       client_id: STRAVA_CLIENT_ID,
-      client_secret: STRAVA_CLIENT_SECRET,
       refresh_token: refreshToken,
       grant_type: 'refresh_token'
     });
-    
+
     return response.data;
   } catch (error) {
     console.error('Error refreshing Strava token:', error);
