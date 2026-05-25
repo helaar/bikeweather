@@ -35,8 +35,8 @@ export const StravaRoutes: React.FC<StravaRoutesProps> = ({ onRouteSelect }) => 
   // Check if Strava API credentials are set
   useEffect(() => {
     const clientId = import.meta.env.VITE_STRAVA_CLIENT_ID;
-    const clientSecret = import.meta.env.VITE_STRAVA_CLIENT_SECRET;
-    setHasCredentials(Boolean(clientId && clientSecret));
+    const proxyUrl = import.meta.env.VITE_STRAVA_PROXY_URL;
+    setHasCredentials(Boolean(clientId && proxyUrl));
   }, []);
 
   // Fetch routes when component mounts if authenticated
@@ -249,7 +249,7 @@ const handleRouteSelect = async (route: StravaRoute) => {
               <p>IS_GITHUB_PAGES: {String(import.meta.env.IS_GITHUB_PAGES)}</p>
               <p>BUILD_TIME: {import.meta.env.BUILD_TIME}</p>
               <p>VITE_STRAVA_CLIENT_ID exists: {Boolean(import.meta.env.VITE_STRAVA_CLIENT_ID) ? 'Yes' : 'No'}</p>
-              <p>VITE_STRAVA_CLIENT_SECRET exists: {Boolean(import.meta.env.VITE_STRAVA_CLIENT_SECRET) ? 'Yes' : 'No'}</p>
+              <p>VITE_STRAVA_PROXY_URL exists: {Boolean(import.meta.env.VITE_STRAVA_PROXY_URL) ? 'Yes' : 'No'}</p>
             </div>
             <p className="text-sm text-amber-700 mt-2">
               Se README.md for instruksjoner om hvordan du setter opp Strava-integrasjonen.
