@@ -301,15 +301,18 @@ const WeatherRoute = () => {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
         
-        const response = await fetch(
-          `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${point.lat}&lon=${point.lon}`,
-          {
-            headers: {
-              'User-Agent': 'SykkelvaerApp/1.0 (your-email@example.com)'
-            }
-          }
-        );
-        
+        const weatherController = new AbortController();
+        const weatherTimeout = setTimeout(() => weatherController.abort(), 10_000);
+        let response: Response;
+        try {
+          response = await fetch(
+            `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${point.lat}&lon=${point.lon}`,
+            { signal: weatherController.signal }
+          );
+        } finally {
+          clearTimeout(weatherTimeout);
+        }
+
         if (!response.ok) {
           throw new Error(`Weather API request failed: ${response.status}`);
         }
