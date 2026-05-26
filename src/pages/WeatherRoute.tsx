@@ -256,8 +256,8 @@ const WeatherRoute = () => {
       let maxIntervalMinutes = 90; // Default interval for trips > 6 hours
       
       if (data.duration <= 2) {
-        // For trips of 2 hours or less: forecast every 30 minutes
-        maxIntervalMinutes = 30;
+        // For trips of 2 hours or less: forecast every 15 minutes
+        maxIntervalMinutes = 15;
       } else if (data.duration <= 6) {
         // For trips between 2-6 hours: forecast every hour
         maxIntervalMinutes = 60;
