@@ -7,6 +7,48 @@ import { RouteData } from '@/pages/WeatherRoute';
 import { Calendar, Clock, MapPin, AlertTriangle } from 'lucide-react';
 import { RouteSelectionModal } from '@/components/RouteSelectionModal';
 
+/**
+ * Parse a duration string to decimal hours.
+ * Accepts:
+ *  - Decimal hours:  "1.5"  or  "1,5"  →  1.5
+ *  - hh:mm:         "1:30"             →  1.5
+ * Returns null when the input cannot be parsed or is ≤ 0.
+ */
+export const parseDurationToHours = (input: string): number | null => {
+  if (!input.trim()) return null;
+
+  // Normalise: replace comma decimal separator with period
+  const normalized = input.trim().replace(',', '.');
+
+  if (normalized.includes(':')) {
+    const [hPart, mPart] = normalized.split(':');
+    const h = parseInt(hPart, 10);
+    const m = parseInt(mPart, 10);
+    if (!isNaN(h) && !isNaN(m) && h >= 0 && m >= 0 && m < 60) {
+      const total = h + m / 60;
+      return total > 0 ? total : null;
+    }
+    return null;
+  }
+
+  const decimal = parseFloat(normalized);
+  if (!isNaN(decimal) && decimal > 0) {
+    return decimal;
+  }
+
+  return null;
+};
+
+/**
+ * Format decimal hours to "h:mm" display string.
+ * e.g. 1.5 → "1:30",  2 → "2:00"
+ */
+export const formatHoursToHHMM = (hours: number): string => {
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  return `${h}:${String(m).padStart(2, '0')}`;
+};
+
 // Interface for form data that can be stored in localStorage
 interface StorableFormData {
   startDate: string;
@@ -30,7 +72,8 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
   const [gpxFile, setGpxFile] = useState<File | null>(null);
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('');
-  const [duration, setDuration] = useState(8); // Default to 8 hours instead of 0
+  const [duration, setDuration] = useState(8); // Decimal hours, default 8
+  const [durationInput, setDurationInput] = useState(formatHoursToHHMM(8)); // Display string
   const [routeName, setRouteName] = useState('');
   const [routeDistance, setRouteDistance] = useState<number | null>(null);
   const [dateTimeError, setDateTimeError] = useState<string | null>(null);
@@ -59,9 +102,11 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
         if (!isNaN(parsedDuration) && parsedDuration > 0) {
           console.log('Setting duration to:', parsedDuration);
           setDuration(parsedDuration);
+          setDurationInput(formatHoursToHHMM(parsedDuration));
         } else {
           console.log('Using default duration (8) because parsed value was invalid:', parsedFormData.duration);
           setDuration(8); // Default to 8 hours if invalid
+          setDurationInput(formatHoursToHHMM(8));
         }
         
         if (parsedFormData.routeName) setRouteName(parsedFormData.routeName);
@@ -346,7 +391,7 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
                     </p>
                   )}
                   <p className="text-sm text-yellow-600">
-                    <strong>Varighet:</strong> {duration} timer
+                    <strong>Varighet:</strong> {formatHoursToHHMM(duration)}
                   </p>
                   <p className="text-sm text-yellow-700 mt-2 font-medium">
                     Vennligst velg ruten på nytt for å fortsette
@@ -428,44 +473,32 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
                   <div className="space-y-2">
                     <Label htmlFor="duration" className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />
-                      Varighet (timer)
+                      Varighet (t:mm)
                     </Label>
                     <Input
                       id="duration"
-                      type="number"
-                      min="1"
-                      max="24"
-                      placeholder="8"
-                      value={duration || ''}
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="t:mm"
+                      value={durationInput}
                       onChange={(e) => {
                         setFormTouched(true);
-                        
-                        // Use the input value directly without default fallback
-                        const inputValue = e.target.value;
-                        
-                        // Only parse to number when the input is not empty
-                        if (inputValue === '') {
-                          setDuration(0); // Allow empty input while typing
-                        } else {
-                          const parsedValue = parseInt(inputValue);
-                          // Only use the parsed value if it's a valid number
-                          if (!isNaN(parsedValue)) {
-                            setDuration(parsedValue);
-                          }
+                        setDurationInput(e.target.value);
+                        // Update numeric duration while typing if the value is already parseable
+                        const parsed = parseDurationToHours(e.target.value);
+                        if (parsed !== null) {
+                          setDuration(parsed);
                         }
-                        
-                        // Save duration immediately when changed
-                        try {
-                          const currentData = localStorage.getItem('routeFormData');
-                          if (currentData) {
-                            const parsedData = JSON.parse(currentData);
-                            // Store the actual parsed value or 0 if empty
-                            parsedData.duration = inputValue === '' ? 0 : (parseInt(inputValue) || 0);
-                            localStorage.setItem('routeFormData', JSON.stringify(parsedData));
-                            console.log('Immediately saved duration:', parsedData.duration);
-                          }
-                        } catch (error) {
-                          console.error('Error saving duration:', error);
+                      }}
+                      onBlur={() => {
+                        const parsed = parseDurationToHours(durationInput);
+                        if (parsed !== null && parsed > 0) {
+                          const formatted = formatHoursToHHMM(parsed);
+                          setDuration(parsed);
+                          setDurationInput(formatted);
+                        } else if (duration > 0) {
+                          // Restore last valid value on invalid input
+                          setDurationInput(formatHoursToHHMM(duration));
                         }
                       }}
                       required
