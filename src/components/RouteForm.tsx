@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { RouteData } from '@/pages/WeatherRoute';
 import { Calendar, Clock, MapPin, AlertTriangle } from 'lucide-react';
 import { RouteSelectionModal } from '@/components/RouteSelectionModal';
@@ -74,6 +75,7 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
   const [startTime, setStartTime] = useState('');
   const [duration, setDuration] = useState(8); // Decimal hours, default 8
   const [durationInput, setDurationInput] = useState(formatHoursToHHMM(8)); // Display string
+  const [forecastInterval, setForecastInterval] = useState<'auto' | '15' | '30' | '60'>('auto');
   const [routeName, setRouteName] = useState('');
   const [routeDistance, setRouteDistance] = useState<number | null>(null);
   const [dateTimeError, setDateTimeError] = useState<string | null>(null);
@@ -295,7 +297,8 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
         gpxFile,
         startDate,
         startTime,
-        duration
+        duration,
+        forecastInterval: forecastInterval === 'auto' ? 'auto' : (parseInt(forecastInterval) as 15 | 30 | 60)
       });
     }
   };
@@ -503,6 +506,21 @@ export const RouteForm: React.FC<RouteFormProps> = ({ onSubmit, isLoading, initi
                       }}
                       required
                     />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs text-gray-500">Varselintervall</Label>
+                    <ToggleGroup
+                      type="single"
+                      value={forecastInterval}
+                      onValueChange={(v) => { if (v) setForecastInterval(v as typeof forecastInterval); }}
+                      className="justify-start gap-1"
+                    >
+                      <ToggleGroupItem value="auto" className="h-7 px-2 text-xs">Auto</ToggleGroupItem>
+                      <ToggleGroupItem value="15" className="h-7 px-2 text-xs">15 min</ToggleGroupItem>
+                      <ToggleGroupItem value="30" className="h-7 px-2 text-xs">30 min</ToggleGroupItem>
+                      <ToggleGroupItem value="60" className="h-7 px-2 text-xs">1 time</ToggleGroupItem>
+                    </ToggleGroup>
                   </div>
 
                   {dateTimeError && formTouched && (
