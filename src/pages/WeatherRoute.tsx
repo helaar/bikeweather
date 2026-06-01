@@ -12,6 +12,7 @@ export interface RouteData {
   startTime: string;
   duration: number; // timer
   avgSpeed?: number; // km/h
+  forecastInterval?: 'auto' | 15 | 30 | 60; // minutes, or auto
 }
 
 export interface WeatherPrediction {
@@ -252,15 +253,16 @@ const WeatherRoute = () => {
       const speed = Math.round(length / data.duration);
       setAvgSpeed(speed);
       
-      // Calculate forecast interval based on trip duration
-      let maxIntervalMinutes = 90; // Default interval for trips > 6 hours
-      
-      if (data.duration <= 2) {
-        // For trips of 2 hours or less: forecast every 15 minutes
+      // Calculate forecast interval based on trip duration (or user override)
+      let maxIntervalMinutes: number;
+      if (data.forecastInterval && data.forecastInterval !== 'auto') {
+        maxIntervalMinutes = data.forecastInterval;
+      } else if (data.duration <= 2) {
         maxIntervalMinutes = 15;
       } else if (data.duration <= 6) {
-        // For trips between 2-6 hours: forecast every hour
         maxIntervalMinutes = 60;
+      } else {
+        maxIntervalMinutes = 90;
       }
       
       const maxIntervalHours = maxIntervalMinutes / 60;
