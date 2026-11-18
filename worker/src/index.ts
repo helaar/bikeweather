@@ -34,11 +34,16 @@ export default {
       body: params.toString(),
     });
 
-    const data = await stravaRes.json();
+    // Pass the body through verbatim. Parsing and re-serializing with JSON.parse/
+    // JSON.stringify would silently round 64-bit IDs (e.g. athlete.id) above 2^53.
+    const data = await stravaRes.text();
 
-    return Response.json(data, {
+    return new Response(data, {
       status: stravaRes.status,
-      headers: { 'Access-Control-Allow-Origin': 'https://helaar.github.io' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': 'https://helaar.github.io',
+      },
     });
   },
 };
