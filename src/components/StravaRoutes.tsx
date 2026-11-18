@@ -5,7 +5,8 @@ import {
   getRouteGpx,
   getRouteDetails,
   metersToKm,
-  StravaRoute
+  StravaRoute,
+  getStravaId,
 } from '@/lib/strava';
 import { decodePolyline, createGpxFromCoordinates } from '@/lib/polyline';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,7 +29,7 @@ export const StravaRoutes: React.FC<StravaRoutesProps> = ({ onRouteSelect }) => 
   const [nameFilter, setNameFilter] = useState('');
   const [starredOnly, setStarredOnly] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [loadingGpx, setLoadingGpx] = useState(false);
   const [hasCredentials, setHasCredentials] = useState(true);
   
@@ -120,7 +121,7 @@ export const StravaRoutes: React.FC<StravaRoutesProps> = ({ onRouteSelect }) => 
   };
 // Handle route selection with improved error handling
 const handleRouteSelect = async (route: StravaRoute) => {
-  setSelectedRouteId(route.id);
+  setSelectedRouteId(getStravaId(route));
   setLoadingGpx(true);
   
   try {
@@ -130,7 +131,7 @@ const handleRouteSelect = async (route: StravaRoute) => {
       throw new Error('No valid access token');
     }
     
-    console.log(`Selecting Strava route: ${route.name} (ID: ${route.id})`);
+    console.log(`Selecting Strava route: ${route.name} (ID: ${getStravaId(route)})`);
     
     // Clear existing weather data from localStorage when selecting a new route
     localStorage.removeItem('weatherData');
@@ -160,7 +161,7 @@ const handleRouteSelect = async (route: StravaRoute) => {
     // Second try: Get detailed route data
     try {
       console.log('Trying to get detailed route data');
-      const gpxString = await getRouteGpx(token, route.id);
+      const gpxString = await getRouteGpx(token, getStravaId(route));
       onRouteSelect(gpxString, route.name, route.distance);
       
       toast({
@@ -353,9 +354,9 @@ const handleRouteSelect = async (route: StravaRoute) => {
             {/* Apply filter to routes */}
             {filteredRoutes.map((route) => (
               <div
-                key={route.id}
+                key={getStravaId(route)}
                 className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                data-route-id={route.id}
+                data-route-id={getStravaId(route)}
               >
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium text-lg">{route.name}</h3>
@@ -373,7 +374,7 @@ const handleRouteSelect = async (route: StravaRoute) => {
                     {formatDate(route.created_at)}
                   </div>
                   <a
-                    href={`https://www.strava.com/routes/${route.id_str}`}
+                    href={`https://www.strava.com/routes/${getStravaId(route)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-orange-500 hover:text-orange-600 flex items-center"
@@ -385,9 +386,9 @@ const handleRouteSelect = async (route: StravaRoute) => {
                 <Button
                   className="w-full mt-3"
                   onClick={() => handleRouteSelect(route)}
-                  disabled={loadingGpx && selectedRouteId === route.id}
+                  disabled={loadingGpx && selectedRouteId === getStravaId(route)}
                 >
-                  {loadingGpx && selectedRouteId === route.id ? (
+                  {loadingGpx && selectedRouteId === getStravaId(route) ? (
                     <>
                       <Skeleton className="h-4 w-4 mr-2 rounded-full animate-spin" />
                       Laster...

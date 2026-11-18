@@ -153,7 +153,7 @@ export const getStravaRoutes = async (accessToken: string): Promise<StravaRoute[
  * 2. Falls back to summary polyline if available
  * 3. Can also work with just a route object that has polyline data
  */
-export const getRouteGpx = async (accessToken: string, routeId: number): Promise<string> => {
+export const getRouteGpx = async (accessToken: string, routeId: string): Promise<string> => {
   try {
     // Try to get the route details which include the polyline
     try {
@@ -187,7 +187,7 @@ export const getRouteGpx = async (accessToken: string, routeId: number): Promise
     // Try to get the routes list and find this route
     try {
       const routes = await getStravaRoutes(accessToken);
-      const route = routes.find(r => r.id === routeId);
+      const route = routes.find(r => getStravaId(r) === routeId);
       
       if (route) {
         // Try summary polyline from routes list
@@ -226,7 +226,7 @@ export const getRouteGpx = async (accessToken: string, routeId: number): Promise
 /**
  * Get detailed information about a specific route
  */
-export const getRouteDetails = async (accessToken: string, routeId: number): Promise<StravaRouteDetail> => {
+export const getRouteDetails = async (accessToken: string, routeId: string): Promise<StravaRouteDetail> => {
   try {
     const response = await axios.get<StravaRouteDetail>(`${STRAVA_API_URL}/routes/${routeId}`, {
       headers: {
@@ -250,16 +250,33 @@ export interface StravaTokenResponse {
   athlete: StravaAthlete;
 }
 
-export interface StravaAthlete {
+/**
+ * Strava IDs (routes today, activities and athletes from June 1, 2027) can exceed
+ * Number.MAX_SAFE_INTEGER (2^53 - 1), so the numeric `id` may be silently rounded by
+ * JSON.parse. Always use `id_str` (via getStravaId) for lookups, URLs and comparisons.
+ */
+export interface StravaIdentifiable {
+  /** May be imprecise for 64-bit IDs - do not use for lookups. */
   id: number;
+  /** Exact string representation of the ID. */
+  id_str?: string;
+}
+
+/**
+ * Get the exact Strava ID as a string. Prefers `id_str`, falling back to `id`
+ * only for older payloads (e.g. data cached before `id_str` was returned).
+ */
+export const getStravaId = (obj: StravaIdentifiable): string =>
+  obj.id_str ?? String(obj.id);
+
+export interface StravaAthlete extends StravaIdentifiable {
   firstname: string;
   lastname: string;
   profile: string;
 }
 
-export interface StravaRoute {
-  id: number;
-  id_str: string;  // String representation of the ID (not rounded)
+export interface StravaRoute extends StravaIdentifiable {
+  id_str: string;  // Always returned for routes
   name: string;
   description: string;
   distance: number;
@@ -399,7 +416,7 @@ export const getStoredStravaAthlete = (): StravaAthlete | null => {
     const parsedAthlete = JSON.parse(athleteData) as StravaAthlete;
     
     // Validate parsed athlete
-    if (!parsedAthlete.id) {
+    if (!parsedAthlete.id_str && !parsedAthlete.id) {
       console.error('Retrieved invalid athlete data from localStorage');
       return null;
     }
